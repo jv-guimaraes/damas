@@ -1,4 +1,5 @@
 #![allow(unused)]
+mod coord;
 
 use std::fmt::Display;
 
@@ -13,6 +14,12 @@ const TABULEIRO_INICIAL: [[char; 8]; 8] = [
     ['B', '.', 'B', '.', 'B', '.', 'B', '.'],
 ];
 
+#[derive(Debug)]
+enum Vez {
+    Branca,
+    Preta,
+}
+
 #[derive(Debug, Clone, Copy)]
 enum Casa {
     Ocupada(Peça),
@@ -22,13 +29,15 @@ enum Casa {
 #[derive(Debug, Clone, Copy)]
 enum Peça {
     Branca,
+    RainhaBranca,
     Preta,
+    RainhaPreta,
 }
 
 #[derive(Debug)]
 pub struct Jogo {
     tabuleiro: [[Casa; 8]; 8],
-    vez: Peça,
+    vez: Vez,
 }
 
 impl Default for Jogo {
@@ -45,7 +54,7 @@ impl Default for Jogo {
             }
         }
         // Começar o jogo com a peça branca
-        let vez = Peça::Branca;
+        let vez = Vez::Branca;
         Jogo { tabuleiro, vez }
     }
 }
@@ -58,8 +67,11 @@ impl Display for Jogo {
                 match self.tabuleiro[y][x] {
                     Casa::Ocupada(peça) => {
                         match peça {
-                            Peça::Branca => buffer.push_str(" B "),
-                            Peça::Preta => buffer.push_str(" P "),
+                            Peça::Branca => buffer.push_str(" b "),
+                            Peça::Preta => buffer.push_str(" p "),
+                            Peça::RainhaBranca => buffer.push_str(" B "),
+                            Peça::RainhaPreta => buffer.push_str(" P "),
+                            
                         }
                     },
                     Casa::Vazia => buffer.push_str(" . "),
@@ -68,5 +80,19 @@ impl Display for Jogo {
             buffer.push('\n');
         }
         write!(f, "{}", &buffer)
+    }
+}
+
+impl Jogo {
+    fn jogadas_possiveis(&self) -> Vec<(usize, usize)> {
+        match self.vez {
+            Vez::Branca => {
+
+            },
+            Vez::Preta => {
+
+            },
+        }
+        todo!()
     }
 }
