@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use std::fmt::{Display, Debug};
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Coord {
     x: usize,
     y: usize,
@@ -38,7 +40,13 @@ impl Coord {
     }
 }
 
-fn c(x: usize, y: usize) -> Coord {
+impl Debug for Coord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}, {}", self.x, self.y)
+    }
+}
+
+pub fn c(x: usize, y: usize) -> Coord {
     Coord { x, y }
 }
 
