@@ -12,3 +12,4 @@ name = "damas_cmd"
 path = "src//main.rs"
 
 [dependencies]
+itertools = "0.10.5"

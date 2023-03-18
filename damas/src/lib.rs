@@ -1,5 +1,5 @@
 #![allow(unused)]
-mod coord;
+pub mod coord;
 
 use std::fmt::Display;
 use coord::Coord;
@@ -16,7 +16,7 @@ const TABULEIRO_INICIAL: [[char; 8]; 8] = [
     ['B', '.', 'B', '.', 'B', '.', 'B', '.'],
 ];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Vez {
     Branca,
     Preta,
@@ -28,12 +28,28 @@ enum Casa {
     Vazia,
 }
 
+impl Casa {
+    fn get_peça(self) -> Option<Peça> {
+        match self {
+            Casa::Ocupada(peça) => Some(peça),
+            Casa::Vazia => None,
+        }
+    }
+
+    fn é_vazia(self) -> bool {
+        match self {
+            Casa::Ocupada(_) => false,
+            Casa::Vazia => true,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum Peça {
-    Branca(Coord),
-    RainhaBranca(Coord),
-    Preta(Coord),
-    RainhaPreta(Coord),
+    Branca,
+    RainhaBranca,
+    Preta,
+    RainhaPreta,
 }
 
 #[derive(Debug)]
@@ -49,8 +65,8 @@ impl Default for Jogo {
         for y in 0..tabuleiro.len() {
             for x in 0..tabuleiro.len() {
                 match TABULEIRO_INICIAL[y][x] {
-                    'P' => tabuleiro[y][x] = Casa::Ocupada(Peça::Preta(c(x, y))),
-                    'B' => tabuleiro[y][x] = Casa::Ocupada(Peça::Branca(c(x, y))),
+                    'P' => tabuleiro[y][x] = Casa::Ocupada(Peça::Preta),
+                    'B' => tabuleiro[y][x] = Casa::Ocupada(Peça::Branca),
                     _ => (),
                 }
             }
@@ -71,10 +87,10 @@ impl Display for Jogo {
                 match self.tabuleiro[y][x] {
                     Casa::Ocupada(peça) => {
                         match peça {
-                            Peça::Branca(_) => buffer.push_str(" b "),
-                            Peça::Preta(_) => buffer.push_str(" p "),
-                            Peça::RainhaBranca(_) => buffer.push_str(" B "),
-                            Peça::RainhaPreta(_) => buffer.push_str(" P "),
+                            Peça::Branca => buffer.push_str(" x "),
+                            Peça::Preta => buffer.push_str(" o "),
+                            Peça::RainhaBranca => buffer.push_str(" X "),
+                            Peça::RainhaPreta => buffer.push_str(" O "),
                             
                         }
                     },
@@ -88,23 +104,26 @@ impl Display for Jogo {
 }
 
 impl Jogo {
-    pub fn jogadas_possiveis(&self) -> Vec<(usize, usize)> {
-        match self.vez {
-            Vez::Branca => {
-
-            },
-            Vez::Preta => {
-
-            },
+    pub fn possiveis_jogadas_em(&self, coord: Coord) -> Vec<Coord> {
+        if let Some(peça) = self.peça_em(coord) {
+            let jogadas: Vec<Coord> = Vec::new();
+            let diagonais = match peça {
+                Peça::Branca => coord.diagonais_da_frente(),
+                Peça::RainhaBranca => coord.diagonais_da_frente(),
+                Peça::Preta => coord.diagonais_de_trás(),
+                Peça::RainhaPreta => coord.diagonais_de_trás(),
+            };
+            diagonais.into_iter().filter(|x| self.casa_em(*x).é_vazia()).collect()
+        } else {
+            vec![]
         }
-        todo!()
     }
 
     pub fn peças_brancas(&self) -> Vec<Peça> {
         let mut peças = Vec::new();
         for casa in self.tabuleiro.into_iter().flatten() {
             if let Casa::Ocupada(peça) = casa {
-                if let Peça::Branca(_) = peça {
+                if let Peça::Branca = peça {
                     peças.push(peça);
                 }
             }
@@ -116,11 +135,26 @@ impl Jogo {
         let mut peças = Vec::new();
         for casa in self.tabuleiro.into_iter().flatten() {
             if let Casa::Ocupada(peça) = casa {
-                if let Peça::Preta(_) = peça {
+                if let Peça::Preta = peça {
                     peças.push(peça);
                 }
             }
         }
         peças
+    }
+
+    fn peça_em(&self, coord: Coord) -> Option<Peça> {
+        self.tabuleiro[coord.y][coord.x].get_peça()
+    }
+
+    fn casa_em(&self, coord: Coord) -> Casa {
+        self.tabuleiro[coord.y][coord.x]
+    }
+
+    pub fn mover(&mut self, de: Coord, para: Coord) {
+        let peça = self.peça_em(de).unwrap();
+        self.tabuleiro[de.y][de.x] = Casa::Vazia;
+        self.tabuleiro[para.y][para.x] = Casa::Ocupada(peça);
+
     }
 }
