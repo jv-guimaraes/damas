@@ -1,6 +1,5 @@
 use std::fmt::{Display, Debug};
 
-use crate::Casa;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Coord {

@@ -1,7 +1,8 @@
 #![allow(unused)]
-use damas::Jogo;
+use damas::jogo::Jogo;
 use damas::coord::c;
 use damas::coord::Coord;
+
 use itertools::Itertools;
 
 fn input() -> Coord {
