@@ -1,56 +1,79 @@
-use std::fmt::{Display, Debug};
-
+use std::fmt::{Debug, Display};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Coord {
-    pub x: usize,
-    pub y: usize,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl Coord {
-    pub fn diagonais_da_frente(self) -> Vec<Coord> {
+    pub fn diagonais_comiveis(self) -> Vec<Coord> {
+        let mut diagonais = vec![];
+        for (i, j) in [(1, 1), (-1, -1),(1, -1), (-1, 1)] {
+            let (x, y) = (self.x + i, self.y + j);
+            if é_valido(x, y) && é_valido(x + i, y + j) {
+                diagonais.push(c(x, y));
+            }
+        }
+        diagonais
+    }
+
+    pub fn diagonais_frente(self) -> Vec<Coord> {
         let mut diagonais: Vec<Coord> = Vec::new();
-        if self.y == 0 { return diagonais };
-        
+        if self.y == 0 {
+            return diagonais;
+        };
+
         let y = self.y - 1;
         if self.x > 0 {
             diagonais.push(c(self.x - 1, y));
         }
         if self.x < 7 {
             diagonais.push(c(self.x + 1, y));
-        } 
+        }
         diagonais
     }
 
-    pub fn diagonais_de_trás(self) -> Vec<Coord> {
+    pub fn diagonais_atrás(self) -> Vec<Coord> {
         let mut diagonais: Vec<Coord> = Vec::new();
-        if self.y == 7 { return diagonais };
-        
+        if self.y == 7 {
+            return diagonais;
+        };
+
         let y = self.y + 1;
         if self.x > 0 {
             diagonais.push(c(self.x - 1, y));
         }
         if self.x < 7 {
             diagonais.push(c(self.x + 1, y));
-        } 
+        }
         diagonais
     }
 
-    pub fn diagonais_da_rainha(self) -> Vec<Coord> {
+    pub fn diagonais_rainha(self) -> Vec<Coord> {
         let mut diagonais: Vec<Coord> = Vec::new();
-
-        for (i, j) in [(1, 1), (-1i32, -1), (1, -1), (-1, 1)] {
-            let (mut x, mut y) = (self.x as i32, self.y as i32);
+        for (i, j) in [(1, 1), (-1, -1), (1, -1), (-1, 1)] {
+            let (mut x, mut y) = (self.x, self.y);
             x += i; y += j;
-            loop {
-                diagonais.push(c(x as usize, y as usize));
+            while é_valido(x, y) {
+                diagonais.push(c(x, y));
                 x += i; y += j;
-                if x == 8 || x == -1 { break; }
-                if y == 8 || y == -1 { break; }
             }
         }
         diagonais
     }
+
+    // pub fn diagonais_comiveis(self) -> Vec<Coord> {
+    //     let mut diagonais: Vec<Coord> = Vec::new();
+    //     for (x, y) in [(2, 2), (-2, -2), (2, -2), (-2, 2)] {
+    //         let (x, y) = (self.x as i32 + x, self.y as i32 + y);
+    //         if !é_valido(x, y) {
+    //             continue;
+    //         }
+    //         diagonais.push(c(x, y));
+    //     }
+    //     diagonais
+    // }
 }
 
 impl Debug for Coord {
@@ -59,29 +82,70 @@ impl Debug for Coord {
     }
 }
 
-pub fn c(x: usize, y: usize) -> Coord {
+pub fn c(x: i32, y: i32) -> Coord {
     Coord { x, y }
+}
+
+fn é_valido(x: i32, y: i32) -> bool {
+    if !(0..=7).contains(&x) {
+        return false;
+    }
+    if !(0..=7).contains(&y) {
+        return false;
+    }
+    true
 }
 
 #[test]
 fn testar_diagonais() {
     let coord = c(2, 5);
-    assert_eq!(coord.diagonais_da_frente(), vec![c(1, 4), c(3, 4)]);
-    assert_eq!(coord.diagonais_de_trás(), vec![c(1, 6), c(3, 6)]);
+    assert_eq!(coord.diagonais_frente(), vec![c(1, 4), c(3, 4)]);
+    assert_eq!(coord.diagonais_atrás(), vec![c(1, 6), c(3, 6)]);
+
     let coord = c(0, 0);
-    assert_eq!(coord.diagonais_da_frente(), vec![]);
-    assert_eq!(coord.diagonais_de_trás(), vec![c(1, 1)]);
+    assert_eq!(coord.diagonais_frente(), vec![]);
+    assert_eq!(coord.diagonais_atrás(), vec![c(1, 1)]);
+    
     let coord = c(7, 7);
-    assert_eq!(coord.diagonais_da_frente(), vec![c(6, 6)]);
-    assert_eq!(coord.diagonais_de_trás(), vec![]);
+    assert_eq!(coord.diagonais_frente(), vec![c(6, 6)]);
+    assert_eq!(coord.diagonais_atrás(), vec![]);
+    
     let coord = c(7, 4);
-    assert_eq!(coord.diagonais_da_frente(), vec![c(6, 3)]);
-    assert_eq!(coord.diagonais_de_trás(), vec![c(6, 5)]);
+    assert_eq!(coord.diagonais_frente(), vec![c(6, 3)]);
+    assert_eq!(coord.diagonais_atrás(), vec![c(6, 5)]);
 
     let coord = c(3, 3);
-    assert_eq!(coord.diagonais_da_rainha(), vec![c(4,4), c(5,5), c(6,6),c(7,7), c(2,2), c(1,1),
-                                                 c(0,0), c(4,2), c(5,1), c(6,0), c(2,4), c(1,5), c(0,6)]);
+    assert_eq!(
+        coord.diagonais_rainha(),
+        vec![c(4, 4),c(5, 5), c(6, 6), c(7, 7),
+            c(2, 2), c(1, 1), c(0, 0),
+            c(4, 2), c(5, 1), c(6, 0),
+            c(2, 4), c(1, 5), c(0, 6)]
+    );
+
     let coord = c(6, 1);
-    assert_eq!(coord.diagonais_da_rainha(), vec![c(7,2), c(5,0), c(7,0), c(5,2), c(4,3),
-                                                 c(3,4), c(2,5), c(1,6), c(0,7)]);
+    assert_eq!(
+        coord.diagonais_rainha(),
+        vec![c(7, 2), c(5, 0), c(7, 0),
+            c(5, 2), c(4, 3), c(3, 4),
+            c(2, 5), c(1, 6), c(0, 7)]
+    );
+
+    let coord = c(7, 7);
+    assert_eq!(coord.diagonais_rainha(), vec![c(6,6), c(5,5), c(4,4), c(3,3), c(2,2), c(1,1), c(0,0)]);
+
+    // let coord = c(3, 3);
+    // assert_eq!(coord.diagonais_comiveis(), vec![c(5,5), c(1,1), c(5,1), c(1,5)]);
+
+    // let coord = c(7, 4);
+    // assert_eq!(coord.diagonais_comiveis(), vec![c(5,2), c(5,6)]);
+
+    // let coord = c(0, 7);
+    // assert_eq!(coord.diagonais_comiveis(), vec![c(2,5)]);
+
+    let coord = c(3, 3);
+    assert_eq!(coord.diagonais_comiveis(), vec![c(4,4), c(2,2), c(4,2), c(2,4)]);
+
+    let coord = c(7, 7);
+    assert_eq!(coord.diagonais_comiveis(), vec![c(6, 6)]);
 }

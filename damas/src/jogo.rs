@@ -1,6 +1,8 @@
 #![allow(unused)]
 
 use std::fmt::Display;
+use itertools::Itertools;
+
 use crate::coord::Coord;
 use crate::coord::c;
 
@@ -21,7 +23,7 @@ enum Vez {
     Preta,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Casa {
     Ocupada(Peça),
     Vazia,
@@ -43,12 +45,22 @@ impl Casa {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Peça {
     Branca,
     RainhaBranca,
     Preta,
     RainhaPreta,
+}
+
+impl Peça {
+    fn é_branca(self) -> bool {
+        matches!(self, Peça::Branca | Peça::RainhaBranca)
+    }
+
+    fn é_preta(self) -> bool {
+        matches!(self, Peça::Preta | Peça::RainhaPreta)
+    }
 }
 
 #[derive(Debug)]
@@ -102,58 +114,63 @@ impl Display for Jogo {
     }
 }
 
+pub enum Jogada {
+    Mover(Coord),
+    Comer(Coord, Coord),
+}
+
 impl Jogo {
-    pub fn possiveis_jogadas_em(&self, coord: Coord) -> Vec<Coord> {
-        if let Some(peça) = self.peça_em(coord) {
-            let jogadas: Vec<Coord> = Vec::new();
-            let diagonais = match peça {
-                Peça::Branca => coord.diagonais_da_frente(),
-                Peça::RainhaBranca => coord.diagonais_da_frente(),
-                Peça::Preta => coord.diagonais_de_trás(),
-                Peça::RainhaPreta => coord.diagonais_de_trás(),
-            };
-            diagonais.into_iter().filter(|x| self.casa_em(*x).é_vazia()).collect()
-        } else {
-            vec![]
-        }
-    }
+    pub fn possiveis_jogadas_em(&self, coord: Coord) -> Vec<Jogada> {
+        let mut jogadas = Vec::new();
+        
+        // Caso a casa dada por coord esteja vazia
+        if let Casa::Vazia = self.casa_em(coord) { return vec![]; }
+        
+        // Caso não seja a vez da peça que está em coord
+        let peça = self.peça_em(coord).unwrap();
+        if !self.é_a_vez_de(peça) { return vec![];}
+        
+        // Computar casas andaveis
+        let casas: Vec<Coord> = match peça {
+            Peça::Branca => coord.diagonais_frente().into_iter().filter(|c| self.casa_em(*c).é_vazia()).collect(),
+            Peça::Preta => coord.diagonais_atrás().into_iter().filter(|c| self.casa_em(*c).é_vazia()).collect(),
+            _ => coord.diagonais_rainha().into_iter().filter(|c| self.casa_em(*c).é_vazia()).collect(),
+        };
+        jogadas = casas.into_iter().map(Jogada::Mover).collect();
 
-    pub fn peças_brancas(&self) -> Vec<Peça> {
-        let mut peças = Vec::new();
-        for casa in self.tabuleiro.into_iter().flatten() {
-            if let Casa::Ocupada(peça) = casa {
-                if let Peça::Branca = peça {
-                    peças.push(peça);
-                }
-            }
-        }
-        peças
-    }
+        // Computar casa comíveis
+        for casa in coord.diagonais_comiveis() {
 
-    pub fn peças_pretas(&self) -> Vec<Peça> {
-        let mut peças = Vec::new();
-        for casa in self.tabuleiro.into_iter().flatten() {
-            if let Casa::Ocupada(peça) = casa {
-                if let Peça::Preta = peça {
-                    peças.push(peça);
-                }
-            }
         }
-        peças
+        
+        jogadas
     }
 
     fn peça_em(&self, coord: Coord) -> Option<Peça> {
-        self.tabuleiro[coord.y][coord.x].get_peça()
+        self.casa_em(coord).get_peça()
     }
 
     fn casa_em(&self, coord: Coord) -> Casa {
-        self.tabuleiro[coord.y][coord.x]
+        self.tabuleiro[coord.y as usize][coord.x as usize]
     }
 
-    pub fn mover(&mut self, de: Coord, para: Coord) {
-        let peça = self.peça_em(de).unwrap();
-        self.tabuleiro[de.y][de.x] = Casa::Vazia;
-        self.tabuleiro[para.y][para.x] = Casa::Ocupada(peça);
+    pub fn mover(&mut self, origem: Coord, destino: Coord) -> bool {
+        if let Casa::Vazia = self.casa_em(origem) { return false; }
+        if let Casa::Ocupada(_) = self.casa_em(destino) { return false; }        
+        
+        let peça = self.peça_em(origem).unwrap();
+        if peça.é_branca() && self.vez == Vez::Preta { return false; }
+        if peça.é_preta() && self.vez == Vez::Branca { return false; }
 
+        self.tabuleiro[origem.y as usize][origem.x as usize] = Casa::Vazia;
+        self.tabuleiro[destino.y as usize][destino.x as usize] = Casa::Ocupada(peça);
+        true
+
+    }
+
+    fn é_a_vez_de(&self, peça: Peça) -> bool {
+        if peça.é_branca() && self.vez == Vez::Preta { return false; }
+        if peça.é_preta() && self.vez == Vez::Branca { return false; }
+        true
     }
 }

@@ -10,7 +10,7 @@ fn input() -> Coord {
     std::io::stdin().read_line(&mut buffer);
     buffer.trim().to_string();
     let (x, y) = buffer.split_ascii_whitespace().collect_tuple().unwrap();
-    let (x, y): (usize, usize) = (x.parse().unwrap(), y.parse().unwrap());
+    let (x, y): (i32, i32) = (x.parse().unwrap(), y.parse().unwrap());
     c(x, y)
 }
 
@@ -26,5 +26,5 @@ fn main() {
     //     println!("{}", jogo);
     // }
 
-    println!("{:?}", c(6, 1).diagonais_da_rainha());
+    println!("{:?}", c(7, 7).diagonais_rainha());
 }
