@@ -5,14 +5,14 @@ use crate::coord::Coord;
 use crate::coord::c;
 
 const TABULEIRO_INICIAL: [[char; 8]; 8] = [
-    ['P', '.', 'P', '.', 'P', '.', 'P', '.'],
-    ['.', 'P', '.', 'P', '.', 'P', '.', 'P'],
-    ['P', '.', 'P', '.', '.', '.', 'P', '.'],
-    ['.', '.', '.', '.', 'P', '.', '.', '.'],
-    ['.', '.', '.', 'B', '.', '.', '.', '.'],
-    ['B', '.', '.', '.', 'B', '.', 'B', '.'],
-    ['.', 'B', '.', 'B', '.', 'B', '.', 'B'],
-    ['B', '.', 'B', '.', 'B', '.', 'B', '.'],
+    ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
+    ['.', 'p', '.', 'p', '.', 'p', '.', 'p'],
+    ['p', '.', 'p', '.', '.', '.', 'p', '.'],
+    ['.', '.', '.', '.', 'p', '.', '.', '.'],
+    ['.', '.', '.', 'b', '.', '.', '.', '.'],
+    ['b', '.', '.', '.', 'b', '.', 'b', '.'],
+    ['.', 'b', '.', 'b', '.', 'b', '.', 'b'],
+    ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
 ];
 
 #[derive(Debug, PartialEq)]
@@ -75,8 +75,8 @@ impl Default for Jogo {
         for y in 0..tabuleiro.len() {
             for x in 0..tabuleiro.len() {
                 match TABULEIRO_INICIAL[y][x] {
-                    'P' => tabuleiro[y][x] = Casa::Ocupada(Peça::Preta),
-                    'B' => tabuleiro[y][x] = Casa::Ocupada(Peça::Branca),
+                    'p' => tabuleiro[y][x] = Casa::Ocupada(Peça::Preta),
+                    'b' => tabuleiro[y][x] = Casa::Ocupada(Peça::Branca),
                     _ => (),
                 }
             }
@@ -120,9 +120,7 @@ pub enum Jogada {
 }
 
 impl Jogo {
-    pub fn possiveis_jogadas_em(&self, coord: Coord) -> Vec<Jogada> {
-        let mut jogadas = Vec::new();
-        
+    pub fn possiveis_jogadas_em(&self, coord: Coord) -> Vec<Jogada> {      
         // Caso a casa dada por coord esteja vazia
         if let Casa::Vazia = self.casa_em(coord) { return vec![]; }
         
@@ -136,7 +134,7 @@ impl Jogo {
             Peça::Preta => coord.diagonais_atrás().into_iter().filter(|c| self.casa_em(*c).é_vazia()).collect(),
             _ => coord.diagonais_rainha().into_iter().filter(|c| self.casa_em(*c).é_vazia()).collect(),
         };
-        jogadas = casas.into_iter().map(Jogada::Mover).collect();
+        let andaveis = casas.into_iter().map(Jogada::Mover).collect();
 
         // Computar casa comíveis
         let mut comiveis = vec![];
@@ -151,7 +149,7 @@ impl Jogo {
         }
         
         if comiveis.is_empty() {
-            jogadas
+            andaveis
         } else {
             comiveis
         }
@@ -166,17 +164,7 @@ impl Jogo {
     }
 
     pub fn mover(&mut self, origem: Coord, destino: Coord) -> bool {
-        if let Casa::Vazia = self.casa_em(origem) { return false; }
-        if let Casa::Ocupada(_) = self.casa_em(destino) { return false; }        
-        
-        let peça = self.peça_em(origem).unwrap();
-        if peça.é_branca() && self.vez == Vez::Preta { return false; }
-        if peça.é_preta() && self.vez == Vez::Branca { return false; }
-
-        self.tabuleiro[origem.y as usize][origem.x as usize] = Casa::Vazia;
-        self.tabuleiro[destino.y as usize][destino.x as usize] = Casa::Ocupada(peça);
-        true
-
+        todo!()
     }
 
     fn é_a_vez_de(&self, peça: Peça) -> bool {
