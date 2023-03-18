@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use std::fmt::Display;
 use itertools::Itertools;
 
@@ -9,10 +7,10 @@ use crate::coord::c;
 const TABULEIRO_INICIAL: [[char; 8]; 8] = [
     ['P', '.', 'P', '.', 'P', '.', 'P', '.'],
     ['.', 'P', '.', 'P', '.', 'P', '.', 'P'],
-    ['P', '.', 'P', '.', 'P', '.', 'P', '.'],
-    ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['B', '.', 'B', '.', 'B', '.', 'B', '.'],
+    ['P', '.', 'P', '.', '.', '.', 'P', '.'],
+    ['.', '.', '.', '.', 'P', '.', '.', '.'],
+    ['.', '.', '.', 'B', '.', '.', '.', '.'],
+    ['B', '.', '.', '.', 'B', '.', 'B', '.'],
     ['.', 'B', '.', 'B', '.', 'B', '.', 'B'],
     ['B', '.', 'B', '.', 'B', '.', 'B', '.'],
 ];
@@ -67,6 +65,7 @@ impl Peça {
 pub struct Jogo {
     tabuleiro: [[Casa; 8]; 8],
     vez: Vez,
+    tem_que_comer: bool,
 }
 
 impl Default for Jogo {
@@ -84,7 +83,7 @@ impl Default for Jogo {
         }
         // Começar o jogo com a peça branca
         let vez = Vez::Branca;
-        Jogo { tabuleiro, vez }
+        Jogo { tabuleiro, vez, tem_que_comer: false }
     }
 }
 
@@ -114,6 +113,7 @@ impl Display for Jogo {
     }
 }
 
+#[derive(Debug)]
 pub enum Jogada {
     Mover(Coord),
     Comer(Coord, Coord),
@@ -139,11 +139,22 @@ impl Jogo {
         jogadas = casas.into_iter().map(Jogada::Mover).collect();
 
         // Computar casa comíveis
-        for casa in coord.diagonais_comiveis() {
+        let mut comiveis = vec![];
+        for vizinho in coord.diagonais_comiveis() {
+            if let Casa::Vazia = self.casa_em(vizinho) { continue; }
+            if self.é_a_vez_de(self.peça_em(vizinho).unwrap()) { continue; }
 
+            let pulo = coord.distancia(vizinho).vezes(2);
+            if self.casa_em(coord + pulo).é_vazia() {
+                comiveis.push(Jogada::Comer(vizinho, coord + pulo));
+            }
         }
         
-        jogadas
+        if comiveis.is_empty() {
+            jogadas
+        } else {
+            comiveis
+        }
     }
 
     fn peça_em(&self, coord: Coord) -> Option<Peça> {

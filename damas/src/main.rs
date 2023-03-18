@@ -25,8 +25,7 @@ fn main() {
     //     jogo.mover(de, para);
     //     println!("{}", jogo);
     // }
-
-    println!("{:?}", c(7, 7).diagonais_rainha());
-
-    println!("{:?}", c(7, 7).distancia(c(6, 6)).vezes(2));
+    
+    let coord = c(3, 4);
+    println!("{:?}: {:?}", coord, jogo.possiveis_jogadas_em(coord));
 }

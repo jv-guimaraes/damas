@@ -1,9 +1,17 @@
-use std::fmt::{Debug, Display};
+use std::{fmt::{Debug, Display}, ops::Add};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Coord {
     pub x: i32,
     pub y: i32,
+}
+
+impl Add for Coord {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {x: self.x + other.x, y: self.y + other.y}
+    }
 }
 
 impl Coord {
