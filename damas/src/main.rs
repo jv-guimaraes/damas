@@ -25,5 +25,5 @@ fn main() {
     //     println!("{}", jogo);
     // }
 
-    println!("{:?}", c(3, 4).diagonais_da_rainha());
+    println!("{:?}", c(6, 1).diagonais_da_rainha());
 }

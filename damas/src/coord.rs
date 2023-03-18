@@ -43,10 +43,12 @@ impl Coord {
         for (i, j) in [(1, 1), (-1i32, -1), (1, -1), (-1, 1)] {
             let (mut x, mut y) = (self.x as i32, self.y as i32);
             loop {
-                diagonais.push(c(x as usize, y as usize));
+                if x != self.x as i32 && y != self.y as i32 {
+                    diagonais.push(c(x as usize, y as usize));
+                }
                 x += i; y += j;
-                if x == 7 || x == 0 { break; }
-                if y == 7 || y == 0 { break; }
+                if x == 8 || x == -1 { break; }
+                if y == 8 || y == -1 { break; }
             }
         }
         diagonais
@@ -77,4 +79,8 @@ fn testar_diagonais() {
     let coord = c(7, 4);
     assert_eq!(coord.diagonais_da_frente(), vec![c(6, 3)]);
     assert_eq!(coord.diagonais_de_trás(), vec![c(6, 5)]);
+
+    let coord = c(3, 3);
+    assert_eq!(coord.diagonais_da_rainha(), vec![c(4,4), c(5,5), c(6,6),c(7,7), c(2,2), c(1,1),
+                                                 c(0,0), c(4,2), c(5,1), c(6,0), c(2,4), c(1,5), c(0,6)])
 }
