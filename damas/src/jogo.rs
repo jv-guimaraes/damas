@@ -1,8 +1,7 @@
 use std::fmt::Display;
 use itertools::Itertools;
 
-use crate::coord::Coord;
-use crate::coord::c;
+use crate::coord::{c, Coord};
 
 const TABULEIRO_INICIAL: [[char; 8]; 8] = [
     ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
@@ -15,7 +14,7 @@ const TABULEIRO_INICIAL: [[char; 8]; 8] = [
     ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
 ];
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Vez {
     Branca,
     Preta,
@@ -65,7 +64,6 @@ impl Peça {
 pub struct Jogo {
     tabuleiro: [[Casa; 8]; 8],
     vez: Vez,
-    tem_que_comer: bool,
 }
 
 impl Default for Jogo {
@@ -82,8 +80,7 @@ impl Default for Jogo {
             }
         }
         // Começar o jogo com a peça branca
-        let vez = Vez::Branca;
-        Jogo { tabuleiro, vez, tem_que_comer: false }
+        Jogo { tabuleiro, vez: Vez::Branca }
     }
 }
 

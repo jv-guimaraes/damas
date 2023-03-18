@@ -26,6 +26,6 @@ fn main() {
     //     println!("{}", jogo);
     // }
     
-    let coord = c(4, 5);
+    let coord = c(3, 4);
     println!("{:?}: {:?}", coord, jogo.possiveis_jogadas_em(coord));
 }
