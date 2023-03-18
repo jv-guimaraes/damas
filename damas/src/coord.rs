@@ -63,17 +63,13 @@ impl Coord {
         diagonais
     }
 
-    // pub fn diagonais_comiveis(self) -> Vec<Coord> {
-    //     let mut diagonais: Vec<Coord> = Vec::new();
-    //     for (x, y) in [(2, 2), (-2, -2), (2, -2), (-2, 2)] {
-    //         let (x, y) = (self.x as i32 + x, self.y as i32 + y);
-    //         if !é_valido(x, y) {
-    //             continue;
-    //         }
-    //         diagonais.push(c(x, y));
-    //     }
-    //     diagonais
-    // }
+    pub fn distancia(self, other: Self) -> Coord {
+        Coord { x: other.x - self.x, y: other.y - self.y}
+    }
+
+    pub fn vezes(self, fator: i32) -> Coord {
+        Coord { x: self.x * fator, y: self.y * fator }
+    }
 }
 
 impl Debug for Coord {
@@ -134,18 +130,12 @@ fn testar_diagonais() {
     let coord = c(7, 7);
     assert_eq!(coord.diagonais_rainha(), vec![c(6,6), c(5,5), c(4,4), c(3,3), c(2,2), c(1,1), c(0,0)]);
 
-    // let coord = c(3, 3);
-    // assert_eq!(coord.diagonais_comiveis(), vec![c(5,5), c(1,1), c(5,1), c(1,5)]);
-
-    // let coord = c(7, 4);
-    // assert_eq!(coord.diagonais_comiveis(), vec![c(5,2), c(5,6)]);
-
-    // let coord = c(0, 7);
-    // assert_eq!(coord.diagonais_comiveis(), vec![c(2,5)]);
-
     let coord = c(3, 3);
     assert_eq!(coord.diagonais_comiveis(), vec![c(4,4), c(2,2), c(4,2), c(2,4)]);
 
     let coord = c(7, 7);
     assert_eq!(coord.diagonais_comiveis(), vec![c(6, 6)]);
+
+    let coord = c(7, 7);
+    assert_eq!(coord.distancia(c(6, 6)).vezes(2), c(-2, -2));
 }

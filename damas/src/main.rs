@@ -27,4 +27,6 @@ fn main() {
     // }
 
     println!("{:?}", c(7, 7).diagonais_rainha());
+
+    println!("{:?}", c(7, 7).distancia(c(6, 6)).vezes(2));
 }
