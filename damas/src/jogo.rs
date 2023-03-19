@@ -4,14 +4,14 @@ use std::fmt::Display;
 use crate::coord::{c, Coord};
 
 const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
-    ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
-    ['.', 'p', '.', 'p', '.', 'p', '.', 'p'],
-    ['.', '.', 'p', '.', '.', '.', '.', '.'],
-    ['.', 'p', '.', 'p', '.', '.', '.', 'p'],
-    ['.', '.', 'b', '.', '.', '.', 'b', '.'],
-    ['b', '.', '.', '.', 'b', '.', '.', '.'],
-    ['.', 'b', '.', 'b', '.', 'b', '.', 'b'],
-    ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
+    ['.', '.', 'p', '.', 'p', '.', '.', '.'],
+    ['.', '.', '.', 'B', '.', '.', '.', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
+    ['.', 'p', '.', '.', '.', 'p', '.', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -59,16 +59,6 @@ impl Peça {
         matches!(self, Peça::Preta | Peça::RainhaPreta)
     }
 
-    fn é_rainha(self) -> bool {
-        matches!(self, Peça::RainhaBranca | Peça::RainhaPreta)
-    }
-
-    fn vez(self) -> Vez {
-        match self {
-            Peça::Branca | Peça::RainhaBranca => Vez::Branca,
-            Peça::Preta | Peça::RainhaPreta=> Vez::Preta,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -80,7 +70,7 @@ pub enum Jogada {
 
 impl Jogada {
     fn é_comer(&self) -> bool {
-        matches!(self, Jogada::Comer(_,_,_) | Jogada::RComer(_,_,_))
+        matches!(self, Jogada::Comer(_, _, _) | Jogada::RComer(_, _, _))
     }
 }
 
@@ -249,7 +239,7 @@ impl Jogo {
                     let mut possiveis_pulos = vec![];
                     while pulo.é_valida() && self.casa(pulo).é_vazia() {
                         possiveis_pulos.push(pulo);
-                        pulo = (pulo + dir);
+                        pulo = pulo + dir;
                     }
                     comidas.push(Jogada::RComer(coord, atual, possiveis_pulos));
                 }
@@ -332,7 +322,7 @@ mod test {
             ['.', 'b', '.', 'b', '.', 'b', '.', '.'],
             ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
         ];
-        let mut jogo = Jogo::new(TABULEIRO);
+        let jogo = Jogo::new(TABULEIRO);
 
         let coord = c(0, 5);
         assert_eq!(
@@ -396,6 +386,49 @@ mod test {
         assert_eq!(
             jogo.possiveis_jogadas(coord),
             vec![Jogada::RComer(c(7, 5), c(5, 3), vec![c(4, 2)])]
+        );
+    }
+
+    #[test]
+    fn testar_todas_possiveis_jogadas() {
+        const TABULEIRO: [[char; 8]; 8] = [
+            ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
+            ['.', 'p', '.', 'p', '.', 'p', '.', 'p'],
+            ['.', '.', 'p', '.', '.', '.', '.', '.'],
+            ['.', 'p', '.', 'p', '.', '.', '.', 'p'],
+            ['.', '.', 'b', '.', '.', '.', 'b', '.'],
+            ['b', '.', '.', '.', 'b', '.', '.', '.'],
+            ['.', 'b', '.', 'b', '.', 'b', '.', 'b'],
+            ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
+        ];
+        let jogo = Jogo::new(TABULEIRO);
+        assert_eq!(
+            jogo.todas_possiveis_jogadas(),
+            vec![
+                Jogada::Comer(c(2, 4), c(1, 3), c(0, 2)),
+                Jogada::Comer(c(2, 4), c(3, 3), c(4, 2))
+            ]
+        );
+
+        const TABULEIRO1: [[char; 8]; 8] = [
+            ['.', '.', '.', '.', '.', '.', '.', '.'],
+            ['.', '.', '.', '.', '.', '.', '.', '.'],
+            ['.', '.', 'p', '.', 'p', '.', '.', '.'],
+            ['.', '.', '.', 'B', '.', '.', '.', '.'],
+            ['.', '.', '.', '.', '.', '.', '.', '.'],
+            ['.', 'p', '.', '.', '.', 'p', '.', '.'],
+            ['.', '.', '.', '.', '.', '.', '.', '.'],
+            ['.', '.', '.', '.', '.', '.', '.', '.'],
+        ];
+        let jogo = Jogo::new(TABULEIRO1);
+        assert_eq!(
+            jogo.todas_possiveis_jogadas(),
+            vec![
+                Jogada::RComer(c(3, 3), c(5, 5), vec![c(6, 6), c(7, 7)]),
+                Jogada::RComer(c(3, 3), c(2, 2), vec![c(1, 1), c(0, 0)]),
+                Jogada::RComer(c(3, 3), c(4, 2), vec![c(5, 1), c(6, 0)]),
+                Jogada::RComer(c(3, 3), c(1, 5), vec![c(0, 6)])
+            ]
         );
     }
 }
