@@ -6,11 +6,11 @@ use crate::coord::{c, Coord};
 const TABULEIRO_INICIAL: [[char; 8]; 8] = [
     ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
     ['.', 'p', '.', 'p', '.', 'p', '.', '.'],
-    ['P', '.', 'P', '.', 'P', '.', 'P', '.'],
+    ['P', '.', 'P', '.', '.', '.', '.', '.'],
+    ['.', '.', '.', '.', '.', 'P', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['.', '.', '.', '.', 'B', '.', '.', '.'],
-    ['B', '.', 'B', '.', '.', '.', 'B', '.'],
-    ['.', 'b', '.', 'b', '.', 'b', '.', 'b'],
+    ['B', '.', 'B', 'B', '.', '.', 'B', 'B'],
+    ['.', 'b', '.', 'b', '.', 'b', '.', '.'],
     ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
 ];
 
@@ -64,6 +64,13 @@ impl Peça {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum Jogada {
+    Mover(Coord),
+    Comer(Coord, Coord),
+    RComer(Coord, Vec<Coord>),
+}
+
 #[derive(Debug)]
 pub struct Jogo {
     tabuleiro: [[Casa; 8]; 8],
@@ -115,12 +122,6 @@ impl Display for Jogo {
         }
         write!(f, "{}", &buffer)
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Jogada {
-    Mover(Coord),
-    Comer(Coord, Coord),
 }
 
 impl Jogo {
@@ -220,9 +221,14 @@ impl Jogo {
                 atual = atual + dir;
             }
             if atual.é_valida() {
-                let pulo = dbg!(atual + coord.distancia(atual).normal());
-                if atual.é_valida() && self.casa_em(pulo).é_vazia() {
-                    comidas.push(Jogada::Comer(atual, pulo));
+                let mut pulo = (atual) + (coord.distancia(atual).normal());
+                if atual.é_valida() && pulo.é_valida() && self.casa_em(pulo).é_vazia() {
+                    let mut possiveis_pulos = vec![];
+                    while pulo.é_valida() && self.casa_em(pulo).é_vazia() {
+                        possiveis_pulos.push(pulo);
+                        pulo = (pulo + dir);
+                    }
+                    comidas.push(Jogada::RComer(atual, possiveis_pulos));
                 }
             }
         }
@@ -256,16 +262,7 @@ mod test {
     use super::*;
     #[test]
     fn testar_rainhas() {
-        const TABULEIRO: [[char; 8]; 8] = [
-            ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
-            ['.', 'p', '.', 'p', '.', 'p', '.', '.'],
-            ['P', '.', 'P', '.', 'P', '.', 'P', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', 'B', '.', '.', '.'],
-            ['B', '.', 'B', '.', '.', '.', 'B', '.'],
-            ['.', 'b', '.', 'b', '.', 'b', '.', 'b'],
-            ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
-        ];        
+        const TABULEIRO: [[char; 8]; 8] = TABULEIRO_INICIAL;
         let mut jogo = Jogo::new(TABULEIRO);
 
         let coord = c(0, 5);
@@ -306,11 +303,30 @@ mod test {
             ]
         );
 
-        let coord = c(4, 4);
-        assert_eq!(jogo.possiveis_jogadas(coord), vec![Jogada::Comer(c(6,2), c(7,1))]);
+        let coord = c(3, 5);
+        assert_eq!(
+            jogo.possiveis_jogadas(coord),
+            vec![Jogada::RComer(c(5, 3), vec![c(6, 2), c(7, 1)])]
+        );
 
-        jogo.vez = Vez::Preta;
-        let coord = c(2, 2);
-        assert_eq!(jogo.possiveis_jogadas(coord), vec![Jogada::Comer(c(4,4), c(5,5))]);
+        let coord = c(6, 5);
+        assert_eq!(
+            jogo.possiveis_jogadas(coord),
+            vec![
+                Jogada::Mover(c(7, 6)),
+                Jogada::Mover(c(5, 4)),
+                Jogada::Mover(c(4, 3)),
+                Jogada::Mover(c(3, 2)),
+                Jogada::Mover(c(2, 1)),
+                Jogada::Mover(c(1, 0)),
+                Jogada::Mover(c(7, 4))
+            ]
+        );
+
+        let coord = c(7, 5);
+        assert_eq!(
+            jogo.possiveis_jogadas(coord),
+            vec![Jogada::RComer(c(5, 3), vec![c(4, 2)])]
+        );
     }
 }
