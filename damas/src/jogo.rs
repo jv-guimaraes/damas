@@ -1,15 +1,15 @@
-use std::fmt::Display;
 use itertools::Itertools;
+use std::fmt::Display;
 
 use crate::coord::{c, Coord};
 
 const TABULEIRO_INICIAL: [[char; 8]; 8] = [
     ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
-    ['.', 'p', '.', 'p', '.', 'p', '.', 'p'],
-    ['p', '.', 'p', '.', '.', '.', 'p', '.'],
-    ['.', '.', '.', '.', 'p', '.', '.', '.'],
-    ['.', '.', '.', 'b', '.', '.', '.', '.'],
-    ['b', '.', '.', '.', 'b', '.', 'b', '.'],
+    ['.', 'p', '.', 'p', '.', 'p', '.', '.'],
+    ['P', '.', 'P', '.', 'P', '.', 'P', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
+    ['.', '.', '.', '.', 'B', '.', '.', '.'],
+    ['B', '.', 'B', '.', '.', '.', 'B', '.'],
     ['.', 'b', '.', 'b', '.', 'b', '.', 'b'],
     ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
 ];
@@ -58,6 +58,10 @@ impl Peça {
     fn é_preta(self) -> bool {
         matches!(self, Peça::Preta | Peça::RainhaPreta)
     }
+
+    fn é_rainha(self) -> bool {
+        matches!(self, Peça::RainhaBranca | Peça::RainhaPreta)
+    }
 }
 
 #[derive(Debug)]
@@ -75,12 +79,18 @@ impl Default for Jogo {
                 match TABULEIRO_INICIAL[y][x] {
                     'p' => tabuleiro[y][x] = Casa::Ocupada(Peça::Preta),
                     'b' => tabuleiro[y][x] = Casa::Ocupada(Peça::Branca),
-                    _ => (),
+                    'P' => tabuleiro[y][x] = Casa::Ocupada(Peça::RainhaPreta),
+                    'B' => tabuleiro[y][x] = Casa::Ocupada(Peça::RainhaBranca),
+                    '.' => (),
+                    c => panic!("{c} não é uma peça válida!"),
                 }
             }
         }
         // Começar o jogo com a peça branca
-        Jogo { tabuleiro, vez: Vez::Branca }
+        Jogo {
+            tabuleiro,
+            vez: Vez::Branca,
+        }
     }
 }
 
@@ -92,14 +102,11 @@ impl Display for Jogo {
             buffer.push_str(&format!("{y} "));
             for x in 0..8 {
                 match self.tabuleiro[y][x] {
-                    Casa::Ocupada(peça) => {
-                        match peça {
-                            Peça::Branca => buffer.push_str(" x "),
-                            Peça::Preta => buffer.push_str(" o "),
-                            Peça::RainhaBranca => buffer.push_str(" X "),
-                            Peça::RainhaPreta => buffer.push_str(" O "),
-                            
-                        }
+                    Casa::Ocupada(peça) => match peça {
+                        Peça::Branca => buffer.push_str(" x "),
+                        Peça::Preta => buffer.push_str(" o "),
+                        Peça::RainhaBranca => buffer.push_str(" X "),
+                        Peça::RainhaPreta => buffer.push_str(" O "),
                     },
                     Casa::Vazia => buffer.push_str(" . "),
                 }
@@ -110,45 +117,119 @@ impl Display for Jogo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Jogada {
     Mover(Coord),
     Comer(Coord, Coord),
 }
 
 impl Jogo {
-    pub fn possiveis_jogadas_em(&self, coord: Coord) -> Vec<Jogada> {      
+    pub fn new(tabuleiro: [[char; 8]; 8]) -> Self {
+        // Construir tabuleiro inicial
+        let mut tab = [[Casa::Vazia; 8]; 8];
+        for y in 0..tab.len() {
+            for x in 0..tab.len() {
+                match tabuleiro[y][x] {
+                    'p' => tab[y][x] = Casa::Ocupada(Peça::Preta),
+                    'b' => tab[y][x] = Casa::Ocupada(Peça::Branca),
+                    'P' => tab[y][x] = Casa::Ocupada(Peça::RainhaPreta),
+                    'B' => tab[y][x] = Casa::Ocupada(Peça::RainhaBranca),
+                    '.' => (),
+                    c => panic!("{c} não é uma peça válida!"),
+                }
+            }
+        }
+        // Começar o jogo com a peça branca
+        Jogo {
+            tabuleiro: tab,
+            vez: Vez::Branca,
+        }
+    }
+
+    pub fn mover(&mut self, origem: Coord, destino: Coord) -> bool {
+        todo!()
+    }
+
+    pub fn possiveis_jogadas(&self, coord: Coord) -> Vec<Jogada> {
         // Caso a casa dada por coord esteja vazia
-        if let Casa::Vazia = self.casa_em(coord) { return vec![]; }
-        
+        if let Casa::Vazia = self.casa_em(coord) {
+            return vec![];
+        }
+
         // Caso não seja a vez da peça que está em coord
-        let peça = self.peça_em(coord).unwrap();
-        if !self.é_a_vez_de(peça) { return vec![];}
-        
+        let peça_selecionada = self.peça_em(coord).unwrap();
+        if !self.é_a_vez_de(peça_selecionada) {
+            return vec![];
+        }
+
+        match peça_selecionada {
+            Peça::Branca | Peça::Preta => self.possiveis_jogadas_peão(coord),
+            Peça::RainhaBranca | Peça::RainhaPreta => self.possiveis_jogadas_rainha(coord),
+        }
+    }
+
+    fn possiveis_jogadas_peão(&self, coord: Coord) -> Vec<Jogada> {
+        let peça_selecionada = self.peça_em(coord).unwrap();
+
         // Computar casas andaveis
-        let casas: Vec<Coord> = match peça {
-            Peça::Branca => coord.diagonais_frente().into_iter().filter(|c| self.casa_em(*c).é_vazia()).collect(),
-            Peça::Preta => coord.diagonais_atrás().into_iter().filter(|c| self.casa_em(*c).é_vazia()).collect(),
-            _ => coord.diagonais_rainha().into_iter().filter(|c| self.casa_em(*c).é_vazia()).collect(),
+        let casas: Vec<Coord> = match peça_selecionada {
+            Peça::Branca => coord
+                .diagonais_frente()
+                .into_iter()
+                .filter(|c| self.casa_em(*c).é_vazia())
+                .collect(),
+            Peça::Preta => coord
+                .diagonais_atrás()
+                .into_iter()
+                .filter(|c| self.casa_em(*c).é_vazia())
+                .collect(),
+            _ => vec![],
         };
         let andaveis = casas.into_iter().map(Jogada::Mover).collect();
 
         // Computar casa comíveis
         let mut comiveis = vec![];
         for vizinho in coord.diagonais_comiveis() {
-            if let Casa::Vazia = self.casa_em(vizinho) { continue; }
-            if self.é_a_vez_de(self.peça_em(vizinho).unwrap()) { continue; }
+            if let Casa::Vazia = self.casa_em(vizinho) {
+                continue;
+            }
+            if self.é_a_vez_de(self.peça_em(vizinho).unwrap()) {
+                continue;
+            }
 
             let pulo = coord.distancia(vizinho).vezes(2);
             if self.casa_em(coord + pulo).é_vazia() {
                 comiveis.push(Jogada::Comer(vizinho, coord + pulo));
             }
         }
-        
+
         if comiveis.is_empty() {
             andaveis
         } else {
             comiveis
+        }
+    }
+
+    fn possiveis_jogadas_rainha(&self, coord: Coord) -> Vec<Jogada> {
+        let mut movimentos = vec![];
+        let mut comidas = vec![];
+        for dir in [c(1, 1), c(-1, -1), c(1, -1), c(-1, 1)] {
+            let mut atual = coord + dir;
+            while atual.é_valida() && self.casa_em(atual).é_vazia() {
+                movimentos.push(Jogada::Mover(atual));
+                atual = atual + dir;
+            }
+            if atual.é_valida() {
+                let pulo = dbg!(atual + coord.distancia(atual).normal());
+                if atual.é_valida() && self.casa_em(pulo).é_vazia() {
+                    comidas.push(Jogada::Comer(atual, pulo));
+                }
+            }
+        }
+        if comidas.is_empty() {
+            movimentos
+        } else {
+            comidas
         }
     }
 
@@ -160,13 +241,76 @@ impl Jogo {
         self.tabuleiro[coord.y as usize][coord.x as usize]
     }
 
-    pub fn mover(&mut self, origem: Coord, destino: Coord) -> bool {
-        todo!()
-    }
-
     fn é_a_vez_de(&self, peça: Peça) -> bool {
-        if peça.é_branca() && self.vez == Vez::Preta { return false; }
-        if peça.é_preta() && self.vez == Vez::Branca { return false; }
+        if peça.é_branca() && self.vez == Vez::Preta {
+            return false;
+        }
+        if peça.é_preta() && self.vez == Vez::Branca {
+            return false;
+        }
         true
+    }
+}
+
+mod test {
+    use super::*;
+    #[test]
+    fn testar_rainhas() {
+        const TABULEIRO: [[char; 8]; 8] = [
+            ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
+            ['.', 'p', '.', 'p', '.', 'p', '.', '.'],
+            ['P', '.', 'P', '.', 'P', '.', 'P', '.'],
+            ['.', '.', '.', '.', '.', '.', '.', '.'],
+            ['.', '.', '.', '.', 'B', '.', '.', '.'],
+            ['B', '.', 'B', '.', '.', '.', 'B', '.'],
+            ['.', 'b', '.', 'b', '.', 'b', '.', 'b'],
+            ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
+        ];        
+        let mut jogo = Jogo::new(TABULEIRO);
+
+        let coord = c(0, 5);
+        assert_eq!(
+            jogo.possiveis_jogadas(coord),
+            vec![
+                Jogada::Mover(c(1, 4)),
+                Jogada::Mover(c(2, 3)),
+                Jogada::Mover(c(3, 2)),
+                Jogada::Mover(c(4, 1)),
+                Jogada::Mover(c(5, 0))
+            ]
+        );
+
+        let coord = c(0, 5);
+        assert_eq!(
+            jogo.possiveis_jogadas(coord),
+            vec![
+                Jogada::Mover(c(1, 4)),
+                Jogada::Mover(c(2, 3)),
+                Jogada::Mover(c(3, 2)),
+                Jogada::Mover(c(4, 1)),
+                Jogada::Mover(c(5, 0))
+            ]
+        );
+
+        let coord = c(2, 5);
+        assert_eq!(
+            jogo.possiveis_jogadas(coord),
+            vec![
+                Jogada::Mover(c(1, 4)),
+                Jogada::Mover(c(0, 3)),
+                Jogada::Mover(c(3, 4)),
+                Jogada::Mover(c(4, 3)),
+                Jogada::Mover(c(5, 2)),
+                Jogada::Mover(c(6, 1)),
+                Jogada::Mover(c(7, 0))
+            ]
+        );
+
+        let coord = c(4, 4);
+        assert_eq!(jogo.possiveis_jogadas(coord), vec![Jogada::Comer(c(6,2), c(7,1))]);
+
+        jogo.vez = Vez::Preta;
+        let coord = c(2, 2);
+        assert_eq!(jogo.possiveis_jogadas(coord), vec![Jogada::Comer(c(4,4), c(5,5))]);
     }
 }

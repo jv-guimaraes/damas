@@ -19,7 +19,7 @@ impl Coord {
         let mut diagonais = vec![];
         for (i, j) in [(1, 1), (-1, -1),(1, -1), (-1, 1)] {
             let (x, y) = (self.x + i, self.y + j);
-            if é_valido(x, y) && é_valido(x + i, y + j) {
+            if é_valida(x, y) && é_valida(x + i, y + j) {
                 diagonais.push(c(x, y));
             }
         }
@@ -63,7 +63,7 @@ impl Coord {
         for (i, j) in [(1, 1), (-1, -1), (1, -1), (-1, 1)] {
             let (mut x, mut y) = (self.x, self.y);
             x += i; y += j;
-            while é_valido(x, y) {
+            while é_valida(x, y) {
                 diagonais.push(c(x, y));
                 x += i; y += j;
             }
@@ -78,6 +78,20 @@ impl Coord {
     pub fn vezes(self, fator: i32) -> Coord {
         Coord { x: self.x * fator, y: self.y * fator }
     }
+
+    pub fn normal(self) -> Coord {
+        Coord { x: self.x / self.x.abs(), y: self.y / self.y.abs() }
+    }
+
+    pub fn é_valida(self) -> bool {
+        if !(0..=7).contains(&self.x) {
+            return false;
+        }
+        if !(0..=7).contains(&self.y) {
+            return false;
+        }
+        true
+    }
 }
 
 impl Debug for Coord {
@@ -90,7 +104,7 @@ pub fn c(x: i32, y: i32) -> Coord {
     Coord { x, y }
 }
 
-fn é_valido(x: i32, y: i32) -> bool {
+fn é_valida(x: i32, y: i32) -> bool {
     if !(0..=7).contains(&x) {
         return false;
     }
@@ -144,6 +158,15 @@ fn testar_diagonais() {
     let coord = c(7, 7);
     assert_eq!(coord.diagonais_comiveis(), vec![c(6, 6)]);
 
+
+}
+
+#[test]
+fn testar_aritimetica() {
     let coord = c(7, 7);
     assert_eq!(coord.distancia(c(6, 6)).vezes(2), c(-2, -2));
+    let coord = c(2, 2);
+    assert_eq!(coord.normal(), c(1, 1));
+    let coord = c(-3, -3);
+    assert_eq!(coord.normal(), c(-1, -1));
 }
