@@ -7,7 +7,7 @@ const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
     ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', '.', 'p', '.', 'p', '.', '.', '.'],
-    ['.', '.', '.', 'B', '.', '.', '.', '.'],
+    ['.', '.', '.', 'b', '.', '.', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', 'p', '.', '.', '.', 'p', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
@@ -71,6 +71,13 @@ pub enum Jogada {
 impl Jogada {
     fn é_comer(&self) -> bool {
         matches!(self, Jogada::Comer(_, _, _) | Jogada::RComer(_, _, _))
+    }
+
+    fn tem(&self, origem: Coord, destino: Coord) -> bool {
+        match self {
+            Jogada::Mover(o, d) | Jogada::Comer(o, _, d) => *o == origem && *d == destino,
+            Jogada::RComer(o, _, d) => *o == origem && d.contains(&destino),
+        }
     }
 }
 
@@ -151,13 +158,28 @@ impl Jogo {
     }
 
     pub fn mover(&mut self, origem: Coord, destino: Coord) -> bool {
-        if !origem.é_valida() || !destino.é_valida() {
-            return false;
-        };
-        self.tabuleiro[destino.y as usize][destino.x as usize] = self.casa(origem);
-        self.tabuleiro[origem.y as usize][origem.x as usize] = Casa::Vazia;
-        self.passar_turno();
+        let jogada = self
+            .todas_possiveis_jogadas()
+            .into_iter()
+            .filter(|jogada| jogada.tem(origem, destino))
+            .collect_vec();
+        
+        if jogada.is_empty() { return false; }
+        assert!(jogada.len() == 1);
+        let jogada = jogada.into_iter().next().unwrap();
+        match jogada {
+            Jogada::Mover(_, _) => self.mover_sem_checar(origem, destino),
+            Jogada::Comer(_, comida, _) | Jogada::RComer(_, comida, _)=> {
+                self.mover_sem_checar(origem, destino);
+                *self.casa_mut(comida) = Casa::Vazia;
+            },
+        }
         true
+    }
+
+    fn mover_sem_checar(&mut self, origem: Coord, destino: Coord) {
+        *self.casa_mut(destino) = self.casa(origem);
+        *self.casa_mut(origem) = Casa::Vazia;
     }
 
     pub fn possiveis_jogadas(&self, coord: Coord) -> Vec<Jogada> {
@@ -258,6 +280,10 @@ impl Jogo {
 
     fn casa(&self, coord: Coord) -> Casa {
         self.tabuleiro[coord.y as usize][coord.x as usize]
+    }
+
+    fn casa_mut(&mut self, coord: Coord) -> &mut Casa {
+        &mut self.tabuleiro[coord.y as usize][coord.x as usize]
     }
 
     fn é_a_vez_de(&self, peça: Peça) -> bool {

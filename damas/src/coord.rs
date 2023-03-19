@@ -169,4 +169,5 @@ fn testar_aritimetica() {
     assert_eq!(coord.normal(), c(1, 1));
     let coord = c(-3, -3);
     assert_eq!(coord.normal(), c(-1, -1));
+    assert!(c(1, 1) == c(1, 1));
 }
