@@ -5,7 +5,8 @@ use damas::coord::Coord;
 
 use itertools::Itertools;
 
-fn input() -> Coord {
+fn input(msg: &str) -> Coord {
+    println!("{msg}");
     let mut buffer = String::new();
     std::io::stdin().read_line(&mut buffer);
     buffer.trim().to_string();
@@ -18,14 +19,12 @@ fn main() {
     let mut jogo = Jogo::default();
     println!("{}", jogo);
     // loop {
-    //     println!("De: ");
-    //     let de = input();
-    //     println!("Para: ");
-    //     let para = input();
+    //     let de = input("De: ");
+    //     let para = input("Para: ");
+    //     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
     //     jogo.mover(de, para);
-    //     println!("{}", jogo);
+    //     println!("{}\n{:?}", jogo, jogo.vez);
     // }
-    
-    let coord = c(6, 5);
-    println!("{:?}: {:?}", coord, jogo.possiveis_jogadas(coord));
+
+    println!("{:?}", jogo.todas_possiveis_jogadas());
 }
