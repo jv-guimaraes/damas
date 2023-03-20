@@ -9,15 +9,15 @@ const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
     ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', '.', '.', 'p', '.', 'p', '.', '.'],
     ['.', '.', 'b', '.', '.', '.', '.', '.'],
-    ['.', '.', '.', '.', '.', 'p', '.', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Vez {
-    Branca,
-    Preta,
+    Branco,
+    Preto,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -45,25 +45,25 @@ impl Casa {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Peça {
     Branca,
-    RainhaBranca,
+    DamaBranca,
     Preta,
-    RainhaPreta,
+    DamaPreta,
 }
 
 impl Peça {
     fn é_branca(self) -> bool {
-        matches!(self, Peça::Branca | Peça::RainhaBranca)
+        matches!(self, Peça::Branca | Peça::DamaBranca)
     }
 
     fn é_preta(self) -> bool {
-        matches!(self, Peça::Preta | Peça::RainhaPreta)
+        matches!(self, Peça::Preta | Peça::DamaPreta)
     }
 
-    fn rainha(self) -> Self {
+    fn dama(self) -> Self {
         if self.é_branca() {
-            Peça::RainhaBranca
+            Peça::DamaBranca
         } else {
-            Peça::RainhaPreta
+            Peça::DamaPreta
         }
     }
 }
@@ -103,8 +103,8 @@ impl Default for Jogo {
                 match TABULEIRO_INICIAL_CHARS[y][x] {
                     'p' => tabuleiro[y][x] = Casa::Ocupada(Peça::Preta),
                     'b' => tabuleiro[y][x] = Casa::Ocupada(Peça::Branca),
-                    'P' => tabuleiro[y][x] = Casa::Ocupada(Peça::RainhaPreta),
-                    'B' => tabuleiro[y][x] = Casa::Ocupada(Peça::RainhaBranca),
+                    'P' => tabuleiro[y][x] = Casa::Ocupada(Peça::DamaPreta),
+                    'B' => tabuleiro[y][x] = Casa::Ocupada(Peça::DamaBranca),
                     '.' => (),
                     c => panic!("{c} não é uma peça válida!"),
                 }
@@ -113,7 +113,7 @@ impl Default for Jogo {
         // Começar o jogo com a peça branca
         Jogo {
             tabuleiro,
-            vez: Vez::Branca,
+            vez: Vez::Branco,
         }
     }
 }
@@ -129,8 +129,8 @@ impl Display for Jogo {
                     Casa::Ocupada(peça) => match peça {
                         Peça::Branca => buffer.push_str(" x "),
                         Peça::Preta => buffer.push_str(" o "),
-                        Peça::RainhaBranca => buffer.push_str(" X "),
-                        Peça::RainhaPreta => buffer.push_str(" O "),
+                        Peça::DamaBranca => buffer.push_str(" X "),
+                        Peça::DamaPreta => buffer.push_str(" O "),
                     },
                     Casa::Vazia => buffer.push_str(" . "),
                 }
@@ -158,8 +158,8 @@ impl Jogo {
                 match tabuleiro[y][x] {
                     'p' => tab[y][x] = Casa::Ocupada(Peça::Preta),
                     'b' => tab[y][x] = Casa::Ocupada(Peça::Branca),
-                    'P' => tab[y][x] = Casa::Ocupada(Peça::RainhaPreta),
-                    'B' => tab[y][x] = Casa::Ocupada(Peça::RainhaBranca),
+                    'P' => tab[y][x] = Casa::Ocupada(Peça::DamaPreta),
+                    'B' => tab[y][x] = Casa::Ocupada(Peça::DamaBranca),
                     '.' => (),
                     c => panic!("{c} não é uma peça válida!"),
                 }
@@ -168,7 +168,7 @@ impl Jogo {
         // Começar o jogo com a peça branca
         Jogo {
             tabuleiro: tab,
-            vez: Vez::Branca,
+            vez: Vez::Branco,
         }
     }
 
@@ -198,9 +198,9 @@ impl Jogo {
             }
         }
 
-        // Transformar em rainha caso necessário
+        // Transformar em dama caso necessário
         if destino.y == 7 || destino.y == 0 {
-            *self.casa_mut(destino) = Casa::Ocupada(self.peça(destino).unwrap().rainha())
+            *self.casa_mut(destino) = Casa::Ocupada(self.peça(destino).unwrap().dama())
         }
 
         // Checar se acabou o jogo
@@ -236,7 +236,7 @@ impl Jogo {
 
         match peça_selecionada {
             Peça::Branca | Peça::Preta => self.possiveis_jogadas_peão(coord),
-            Peça::RainhaBranca | Peça::RainhaPreta => self.possiveis_jogadas_rainha(coord),
+            Peça::DamaBranca | Peça::DamaPreta => self.possiveis_jogadas_dama(coord),
         }
     }
 
@@ -286,7 +286,7 @@ impl Jogo {
         }
     }
 
-    fn possiveis_jogadas_rainha(&self, coord: Coord) -> Vec<Jogada> {
+    fn possiveis_jogadas_dama(&self, coord: Coord) -> Vec<Jogada> {
         let mut movimentos = vec![];
         let mut comidas = vec![];
         for dir in [c(1, 1), c(-1, -1), c(1, -1), c(-1, 1)] {
@@ -327,10 +327,10 @@ impl Jogo {
     }
 
     fn é_a_vez_de(&self, peça: Peça) -> bool {
-        if peça.é_branca() && self.vez == Vez::Preta {
+        if peça.é_branca() && self.vez == Vez::Preto {
             return false;
         }
-        if peça.é_preta() && self.vez == Vez::Branca {
+        if peça.é_preta() && self.vez == Vez::Branco {
             return false;
         }
         true
@@ -338,8 +338,8 @@ impl Jogo {
 
     fn passar_turno(&mut self) {
         self.vez = match self.vez {
-            Vez::Branca => Vez::Preta,
-            Vez::Preta => Vez::Branca,
+            Vez::Branco => Vez::Preto,
+            Vez::Preto => Vez::Branco,
         }
     }
 
@@ -392,7 +392,7 @@ impl Jogo {
 mod test {
     use super::*;
     #[test]
-    fn testar_rainhas() {
+    fn testar_damas() {
         const TABULEIRO: [[char; 8]; 8] = [
             ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
             ['.', 'p', '.', 'p', '.', 'p', '.', '.'],

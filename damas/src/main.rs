@@ -36,7 +36,7 @@ fn main() {
         println!("{:?}", res);
         if let JogadaResultado::FimDoJogo(ganhador) = res {
             println!("{}", jogo);
-            println!("{} ganhou!!!", if matches!(ganhador, damas::jogo::Vez::Branca) {"Branco"} else {"Preto"});
+            println!("Peça {:?} ganhou!!!", jogo.vez);
             break;
         }
     }
