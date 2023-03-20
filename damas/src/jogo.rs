@@ -4,14 +4,14 @@ use std::fmt::Display;
 use crate::coord::{c, Coord};
 
 const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
-    ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['.', '.', '.', 'p', '.', 'p', '.', '.'],
-    ['.', '.', 'b', '.', '.', '.', '.', '.'],
-    ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['.', '.', '.', '.', '.', '.', '.', '.'],
+    ['p','.','.','.','.','.','.','.'],
+    ['.','.','.','.','.','.','.','.'],
+    ['.','.','.','.','.','.','.','.'],
+    ['.','.','.','.','.','.','p','.'],
+    ['.','.','.','.','.','.','.','.'],
+    ['.','.','.','.','p','.','.','.'],
+    ['.','.','.','b','.','.','p','.'],
+    ['b','.','.','.','.','.','.','b'],
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -68,27 +68,61 @@ impl Peça {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Jogada {
     Mover(Coord, Coord),              // (origem, destino)
     Capturar(Coord, Coord, Coord),       // (origem, comida, destino)
-    DCapturar(Coord, Coord, Vec<Coord>), // (origem, comida, destinos)
+}
+
+impl std::fmt::Debug for Jogada {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?} -> {:?}", self.origem(), self.destino())
+    }
 }
 
 impl Jogada {
+    fn origem(&self)-> Coord {
+        match self {
+            Jogada::Mover(o, _) => *o,
+            Jogada::Capturar(o, _, _) => *o,
+        }
+    }
+
+    fn destino(&self)-> Coord {
+        match self {
+            Jogada::Mover(_, d) => *d,
+            Jogada::Capturar(_, _, d) => *d,
+        }
+    }
+
+    fn captura(&self) -> Coord {
+        if let Jogada::Capturar(_, c, _) = self {
+            *c
+        } else {
+            panic!("{:?} não é uma captura!", self);
+        }
+    }
+
     fn é_capturar(&self) -> bool {
-        matches!(self, Jogada::Capturar(_, _, _) | Jogada::DCapturar(_, _, _))
+        matches!(self, Jogada::Capturar(_, _, _))
     }
 
     fn tem(&self, origem: Coord, destino: Coord) -> bool {
         match self {
             Jogada::Mover(o, d) | Jogada::Capturar(o, _, d) => *o == origem && *d == destino,
-            Jogada::DCapturar(o, _, d) => *o == origem && d.contains(&destino),
         }
     }
 }
 
 #[derive(Debug)]
+pub enum JogadaResultado {
+    Falha,          // Jogada invalida. Não passa o turno nem mexe no tabuleiro
+    Sucesso,        // Jogada válida e passa o turno. Não tem mais possiveis captura
+    Sequencia,      // Jogada válida e não passa o turno. Ainda tem pessas para capturar
+    FimDoJogo(Vez), // Jogada válida e fim do jogo. Retorna a vez de quem ganhou
+}
+
+#[derive(Debug, Clone)]
 pub struct Jogo {
     tabuleiro: [[Casa; 8]; 8],
     pub vez: Vez,
@@ -141,14 +175,6 @@ impl Display for Jogo {
     }
 }
 
-#[derive(Debug)]
-pub enum JogadaResultado {
-    Falha,          // Jogada invalida. Não passa o turno nem mexe no tabuleiro
-    Sucesso,        // Jogada válida e passa o turno. Não tem mais possiveis captura
-    Sequencia,      // Jogada válida e não passa o turno. Ainda tem pessas para capturar
-    FimDoJogo(Vez), // Jogada válida e fim do jogo. Retorna a vez de quem ganhou
-}
-
 impl Jogo {
     pub fn new(tabuleiro: [[char; 8]; 8]) -> Self {
         // Construir tabuleiro inicial
@@ -173,47 +199,58 @@ impl Jogo {
     }
 
     pub fn mover(&mut self, origem: Coord, destino: Coord) -> JogadaResultado {
-        // Filtrar todas as jogadas para encontrar a jogada que tem origem e destino correspondente ao input
-        let jogada = self
-            .todas_possiveis_jogadas()
-            .into_iter()
-            .filter(|jogada| jogada.tem(origem, destino))
-            .collect_vec();
+        // // Filtrar todas as jogadas para encontrar a jogada que tem origem e destino correspondente ao input
+        // let jogada = self
+        //     .todas_possiveis_jogadas()
+        //     .into_iter()
+        //     .filter(|jogada| jogada.tem(origem, destino))
+        //     .collect_vec();
 
-        // Caso não encontre uma jogada que mexe 'origem' para 'destino'
-        if jogada.is_empty() {
-            return JogadaResultado::Falha;
-        }
+        // // Caso não encontre uma jogada que move 'origem' para 'destino'
+        // if jogada.is_empty() {
+        //     return JogadaResultado::Falha;
+        // }
 
-        // Realizar a jogada que foi encontrada
-        let mut capturou = false; // Flag para saber se uma peça foi capturada
-        assert!(jogada.len() == 1);
-        let jogada = jogada.into_iter().next().unwrap();
+        // // Realizar a jogada que foi encontrada
+        // let mut capturou = false; // Flag para saber se uma peça foi capturada
+        // assert!(jogada.len() == 1);
+        // let jogada = jogada.into_iter().next().unwrap();
+        // match jogada {
+        //     Jogada::Mover(_, _) => self.mover_sem_checar(origem, destino),
+        //     Jogada::Capturar(_, comida, _) | Jogada::DCapturar(_, comida, _) => {
+        //         self.mover_sem_checar(origem, destino);
+        //         *self.casa_mut(comida) = Casa::Vazia;
+        //         capturou = true;
+        //     }
+        // }
+
+        // // Transformar em dama caso necessário
+        // if destino.y == 7 || destino.y == 0 {
+        //     *self.casa_mut(destino) = Casa::Ocupada(self.peça(destino).unwrap().dama())
+        // }
+
+        // // Checar se acabou o jogo
+        // if capturou && self.acabou() {
+        //     return JogadaResultado::FimDoJogo(self.vez);
+        // }
+
+        // // Checar se da ou não para capturar em sequencia. Passa o turno caso não de
+        // if capturou && self.possiveis_jogadas(destino).iter().any(|j| j.é_capturar()) {
+        //     JogadaResultado::Sequencia
+        // } else {
+        //     self.passar_turno();
+        //     JogadaResultado::Sucesso
+        // }
+        todo!()
+    }
+
+    fn executar_jogada(&mut self, jogada: Jogada) {
         match jogada {
-            Jogada::Mover(_, _) => self.mover_sem_checar(origem, destino),
-            Jogada::Capturar(_, comida, _) | Jogada::DCapturar(_, comida, _) => {
+            Jogada::Mover(origem, destino) => self.mover_sem_checar(origem, destino),
+            Jogada::Capturar(origem, captura, destino) => {
                 self.mover_sem_checar(origem, destino);
-                *self.casa_mut(comida) = Casa::Vazia;
-                capturou = true;
-            }
-        }
-
-        // Transformar em dama caso necessário
-        if destino.y == 7 || destino.y == 0 {
-            *self.casa_mut(destino) = Casa::Ocupada(self.peça(destino).unwrap().dama())
-        }
-
-        // Checar se acabou o jogo
-        if capturou && self.acabou() {
-            return JogadaResultado::FimDoJogo(self.vez);
-        }
-
-        // Checar se da ou não para capturar em sequencia. Passa o turno caso não de
-        if capturou && self.possiveis_jogadas(destino).iter().any(|j| j.é_capturar()) {
-            JogadaResultado::Sequencia
-        } else {
-            self.passar_turno();
-            JogadaResultado::Sucesso
+                *self.casa_mut(captura) = Casa::Vazia;
+            },
         }
     }
 
@@ -222,96 +259,120 @@ impl Jogo {
         *self.casa_mut(origem) = Casa::Vazia;
     }
 
-    pub fn possiveis_jogadas(&self, coord: Coord) -> Vec<Jogada> {
-        // Caso a casa dada por coord esteja vazia
-        if let Casa::Vazia = self.casa(coord) {
-            return vec![];
-        }
+    pub fn calcular_capturas(&self, origem: Coord) -> Vec<Vec<Jogada>> {
+        let mut stack: Vec<Jogada> = vec![];
+        let mut sequencias: Vec<Vec<Jogada>> = vec![];
+        let peça = self.peça(origem);
+        if peça.is_none() { return vec![vec![]];}
+        let mut clone_sem_origem = self.clone();
+        *clone_sem_origem.casa_mut(origem) = Casa::Vazia;
+        clone_sem_origem.calcular_capturas_recursivamente(origem, &mut stack, &mut sequencias, peça.unwrap());
+        // Filtrar apenas as maiores cadeias
+        if sequencias.is_empty() { return vec![vec![]] }
+        let maior_cadeia = sequencias.iter().max_by_key(|x| x.len()).unwrap().len();
+        sequencias.into_iter().filter(|x| x.len() == maior_cadeia).collect()
+        // Sem filtrar
+        // sequencias
+    }
 
-        // Caso não seja a vez da peça que está em coord
-        let peça_selecionada = self.peça(coord).unwrap();
-        if !self.é_a_vez_de(peça_selecionada) {
-            return vec![];
+    fn calcular_capturas_recursivamente(&self, origem: Coord, stack: &mut Vec<Jogada>, sequencias: &mut Vec<Vec<Jogada>>, peça: Peça) {
+        // println!("origem: {:?}", origem);
+        // println!("stack: {:?}", stack);
+        // println!("sequencias: {:?}", sequencias.len());
+        // println!("--------------------------------------------------------------------");
+        'a: for captura in self.capturas_imediatas(origem, peça) {
+            // println!("{:?}", captura);
+            // if !stack.is_empty() && stack.last().unwrap().origem() == captura.destino() {
+            //     continue;
+            // }
+            // if stack.contains(&captura) { continue; }
+            for captura_anterior in stack.iter() {
+                if captura_anterior.captura() == captura.captura() {
+                    continue 'a;
+                }
+            }
+            stack.push(captura);
+            // println!("{:?}", stack);
+            self.calcular_capturas_recursivamente(captura.destino(), stack, sequencias, peça)
         }
+        if !stack.is_empty() {
+            sequencias.push(stack.clone());
+        }
+        stack.pop();
+        // println!("{:?}", stack);
+    }
 
-        match peça_selecionada {
-            Peça::Branca | Peça::Preta => self.possiveis_jogadas_peão(coord),
-            Peça::DamaBranca | Peça::DamaPreta => self.possiveis_jogadas_dama(coord),
+    fn capturas_imediatas(&self, origem: Coord, peça: Peça) -> Vec<Jogada> {
+        match peça {
+            Peça::Branca | Peça::Preta => self.capturas_imediatas_peão(origem),
+            Peça::DamaBranca | Peça::DamaPreta => self.capturas_imediatas_dama(origem),
         }
     }
 
-    fn possiveis_jogadas_peão(&self, coord: Coord) -> Vec<Jogada> {
-        let peça_selecionada = self.peça(coord).unwrap();
-
-        // Computar casas andaveis
-        let casas: Vec<Coord> = match peça_selecionada {
-            Peça::Branca => coord
-                .diagonais_frente()
-                .into_iter()
-                .filter(|c| self.casa(*c).é_vazia())
-                .collect(),
-            Peça::Preta => coord
-                .diagonais_atrás()
-                .into_iter()
-                .filter(|c| self.casa(*c).é_vazia())
-                .collect(),
-            _ => vec![],
-        };
-        // Transformar lista de coordenadas em Jogadas
-        let andaveis = casas.into_iter().map(|c| Jogada::Mover(coord, c)).collect();
-
-        // Computar casas comíveis
-        let mut comiveis = vec![];
-        for vizinho in coord.diagonais_comiveis() {
-            // Se o vizinho for vazio n tem o que capturar
-            if let Casa::Vazia = self.casa(vizinho) {
-                continue;
-            }
-            // Se o vizinho for da mesma cor não pode come-lo
-            if self.é_a_vez_de(self.peça(vizinho).unwrap()) {
-                continue;
-            }
-            // Calcular aonde pular para capturar a peça
-            let pulo = coord.distancia(vizinho).vezes(2);
-            // Se a casa do pulo for vazia então da pra capturar o vizinho
-            if self.casa(coord + pulo).é_vazia() {
-                comiveis.push(Jogada::Capturar(coord, vizinho, coord + pulo));
-            }
-        }
-
-        if comiveis.is_empty() {
-            andaveis
-        } else {
-            comiveis
-        }
-    }
-
-    fn possiveis_jogadas_dama(&self, coord: Coord) -> Vec<Jogada> {
-        let mut movimentos = vec![];
-        let mut comidas = vec![];
+    fn capturas_imediatas_dama(&self, origem: Coord) -> Vec<Jogada> {
+        let mut capturas = vec![];
         for dir in [c(1, 1), c(-1, -1), c(1, -1), c(-1, 1)] {
-            let mut atual = coord + dir;
+            let mut atual = origem + dir;
             while atual.é_valida() && self.casa(atual).é_vazia() {
-                movimentos.push(Jogada::Mover(coord, atual));
                 atual = atual + dir;
             }
             if atual.é_valida() && !self.é_a_vez_de(self.peça(atual).unwrap()) {
-                let mut pulo = (atual) + (coord.distancia(atual).normal());
+                let mut pulo = (atual) + (origem.distancia(atual).normal());
                 if atual.é_valida() && pulo.é_valida() && self.casa(pulo).é_vazia() {
-                    let mut possiveis_pulos = vec![];
                     while pulo.é_valida() && self.casa(pulo).é_vazia() {
-                        possiveis_pulos.push(pulo);
+                        capturas.push(Jogada::Capturar(origem, atual, pulo));
                         pulo = pulo + dir;
                     }
-                    comidas.push(Jogada::DCapturar(coord, atual, possiveis_pulos));
                 }
             }
         }
-        if comidas.is_empty() {
-            movimentos
-        } else {
-            comidas
+        capturas
+    }
+
+    fn capturas_imediatas_peão(&self, origem: Coord) -> Vec<Jogada> {
+        let mut capturas = vec![];
+        for vizinho in origem.diagonais_comiveis() {
+            if let Casa::Ocupada(peça) = self.casa(vizinho) {
+                if self.é_a_vez_de(peça) { continue; }
+                let destino = vizinho + origem.distancia(vizinho);
+                if self.casa(destino).é_vazia() {
+                    capturas.push(Jogada::Capturar(origem, vizinho, destino));
+                }
+            }
         }
+        capturas
+    }
+
+    pub fn calcular_movimentos(&self, origem: Coord) -> Vec<Jogada> {
+        match self.peça(origem).unwrap() {
+            Peça::Branca | Peça::Preta => self.movimentos_peão(origem),
+            Peça::DamaBranca | Peça::DamaPreta => self.movimentos_dama(origem),
+        }
+    }
+
+    pub fn movimentos_dama(&self, origem: Coord) -> Vec<Jogada> {
+        let mut movimentos = vec![];
+        for dir in [c(1, 1), c(-1, -1), c(1, -1), c(-1, 1)] {
+            let mut atual = origem + dir;
+            while atual.é_valida() && self.casa(atual).é_vazia() {
+                movimentos.push(Jogada::Mover(origem, atual));
+                atual = atual + dir;
+            }
+        }
+        movimentos
+    }
+
+    pub fn movimentos_peão(&self, origem: Coord) -> Vec<Jogada> {
+        let diagonais = match self.peça(origem).unwrap() {
+            Peça::Branca => origem.diagonais_frente(),
+            Peça::Preta => origem.diagonais_atrás(),
+            _ => panic!(),
+        };
+        diagonais
+            .into_iter()
+            .filter(|c| self.casa(*c).é_vazia())
+            .map(|c| Jogada::Mover(origem, c))
+            .collect()
     }
 
     fn peça(&self, coord: Coord) -> Option<Peça> {
@@ -343,22 +404,6 @@ impl Jogo {
         }
     }
 
-    pub fn todas_possiveis_jogadas(&self) -> Vec<Jogada> {
-        // Todas as coordenadas com peças da cor da vez atual
-        let peças_cor_atual = self.peças_da_cor_atual();
-        let jogadas = peças_cor_atual
-            .into_iter()
-            .flat_map(|c| self.possiveis_jogadas(c))
-            .collect_vec();
-
-        // Se tiver pelo menos uma jogada do tipo 'capturar', retorna só elas
-        if jogadas.iter().any(|j| j.é_capturar()) {
-            jogadas.into_iter().filter(|j| j.é_capturar()).collect()
-        } else {
-            jogadas
-        }
-    }
-
     fn peças_da_cor_atual(&self) -> Vec<Coord> {
         let mut peças = vec![];
         for y in 0..8 {
@@ -386,129 +431,40 @@ impl Jogo {
         }
         true
     }
+
+    pub fn todas_capturas_possiveis(&self) -> Vec<Vec<Jogada>> {
+        let mut capturas = vec![];
+        let peças = self.peças_da_cor_atual();
+        for peça in peças {
+            capturas.append(&mut self.calcular_capturas(peça));
+        }
+        let capturas = capturas.into_iter().filter(|x| !x.is_empty()).collect_vec();
+        if capturas.is_empty() { return vec![] }
+        let maior_len = capturas.iter().max_by_key(|x| x.len()).unwrap().len();
+        capturas.into_iter().filter(|x| x.len() == maior_len).collect()
+    }
+
+    pub fn todos_movimentos_possiveis(&self) -> Vec<Vec<Jogada>> {
+        let mut movimentos = vec![];
+        let peças = self.peças_da_cor_atual();
+        for peça in peças {
+            movimentos.push(self.calcular_movimentos(peça));
+        }
+        movimentos.into_iter().filter(|x| !x.is_empty()).collect()
+    }
+
+    pub fn todas_jogadas_possiveis(&self) -> Vec<Vec<Jogada>> {
+        let capturas = self.todas_capturas_possiveis();
+        if capturas.is_empty() {
+            self.todos_movimentos_possiveis()
+        } else {
+            capturas
+        }
+    }
 }
 
 mod test {
     use super::*;
-    #[test]
-    fn testar_damas() {
-        const TABULEIRO: [[char; 8]; 8] = [
-            ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
-            ['.', 'p', '.', 'p', '.', 'p', '.', '.'],
-            ['P', '.', 'P', '.', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', '.', 'P', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['B', '.', 'B', 'B', '.', '.', 'B', 'B'],
-            ['.', 'b', '.', 'b', '.', 'b', '.', '.'],
-            ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
-        ];
-        let jogo = Jogo::new(TABULEIRO);
 
-        let coord = c(0, 5);
-        assert_eq!(
-            jogo.possiveis_jogadas(coord),
-            vec![
-                Jogada::Mover(c(0, 5), c(1, 4)),
-                Jogada::Mover(c(0, 5), c(2, 3)),
-                Jogada::Mover(c(0, 5), c(3, 2)),
-                Jogada::Mover(c(0, 5), c(4, 1)),
-                Jogada::Mover(c(0, 5), c(5, 0))
-            ]
-        );
 
-        let coord = c(0, 5);
-        assert_eq!(
-            jogo.possiveis_jogadas(coord),
-            vec![
-                Jogada::Mover(c(0, 5), c(1, 4)),
-                Jogada::Mover(c(0, 5), c(2, 3)),
-                Jogada::Mover(c(0, 5), c(3, 2)),
-                Jogada::Mover(c(0, 5), c(4, 1)),
-                Jogada::Mover(c(0, 5), c(5, 0))
-            ]
-        );
-
-        let coord = c(2, 5);
-        assert_eq!(
-            jogo.possiveis_jogadas(coord),
-            vec![
-                Jogada::Mover(c(2, 5), c(1, 4)),
-                Jogada::Mover(c(2, 5), c(0, 3)),
-                Jogada::Mover(c(2, 5), c(3, 4)),
-                Jogada::Mover(c(2, 5), c(4, 3)),
-                Jogada::Mover(c(2, 5), c(5, 2)),
-                Jogada::Mover(c(2, 5), c(6, 1)),
-                Jogada::Mover(c(2, 5), c(7, 0))
-            ]
-        );
-
-        let coord = c(3, 5);
-        assert_eq!(
-            jogo.possiveis_jogadas(coord),
-            vec![Jogada::DCapturar(c(3, 5), c(5, 3), vec![c(6, 2), c(7, 1)])]
-        );
-
-        let coord = c(6, 5);
-        assert_eq!(
-            jogo.possiveis_jogadas(coord),
-            vec![
-                Jogada::Mover(c(6, 5), c(7, 6)),
-                Jogada::Mover(c(6, 5), c(5, 4)),
-                Jogada::Mover(c(6, 5), c(4, 3)),
-                Jogada::Mover(c(6, 5), c(3, 2)),
-                Jogada::Mover(c(6, 5), c(2, 1)),
-                Jogada::Mover(c(6, 5), c(1, 0)),
-                Jogada::Mover(c(6, 5), c(7, 4))
-            ]
-        );
-
-        let coord = c(7, 5);
-        assert_eq!(
-            jogo.possiveis_jogadas(coord),
-            vec![Jogada::DCapturar(c(7, 5), c(5, 3), vec![c(4, 2)])]
-        );
-    }
-
-    #[test]
-    fn testar_todas_possiveis_jogadas() {
-        const TABULEIRO: [[char; 8]; 8] = [
-            ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
-            ['.', 'p', '.', 'p', '.', 'p', '.', 'p'],
-            ['.', '.', 'p', '.', '.', '.', '.', '.'],
-            ['.', 'p', '.', 'p', '.', '.', '.', 'p'],
-            ['.', '.', 'b', '.', '.', '.', 'b', '.'],
-            ['b', '.', '.', '.', 'b', '.', '.', '.'],
-            ['.', 'b', '.', 'b', '.', 'b', '.', 'b'],
-            ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
-        ];
-        let jogo = Jogo::new(TABULEIRO);
-        assert_eq!(
-            jogo.todas_possiveis_jogadas(),
-            vec![
-                Jogada::Capturar(c(2, 4), c(1, 3), c(0, 2)),
-                Jogada::Capturar(c(2, 4), c(3, 3), c(4, 2))
-            ]
-        );
-
-        const TABULEIRO1: [[char; 8]; 8] = [
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', '.', 'p', '.', 'p', '.', '.', '.'],
-            ['.', '.', '.', 'B', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', 'p', '.', '.', '.', 'p', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-        ];
-        let jogo = Jogo::new(TABULEIRO1);
-        assert_eq!(
-            jogo.todas_possiveis_jogadas(),
-            vec![
-                Jogada::DCapturar(c(3, 3), c(5, 5), vec![c(6, 6), c(7, 7)]),
-                Jogada::DCapturar(c(3, 3), c(2, 2), vec![c(1, 1), c(0, 0)]),
-                Jogada::DCapturar(c(3, 3), c(4, 2), vec![c(5, 1), c(6, 0)]),
-                Jogada::DCapturar(c(3, 3), c(1, 5), vec![c(0, 6)])
-            ]
-        );
-    }
 }
