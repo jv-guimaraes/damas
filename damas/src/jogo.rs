@@ -71,19 +71,19 @@ impl Peça {
 #[derive(Debug, PartialEq)]
 pub enum Jogada {
     Mover(Coord, Coord),              // (origem, destino)
-    Comer(Coord, Coord, Coord),       // (origem, comida, destino)
-    RComer(Coord, Coord, Vec<Coord>), // (origem, comida, destinos)
+    Capturar(Coord, Coord, Coord),       // (origem, comida, destino)
+    RCapturar(Coord, Coord, Vec<Coord>), // (origem, comida, destinos)
 }
 
 impl Jogada {
-    fn é_comer(&self) -> bool {
-        matches!(self, Jogada::Comer(_, _, _) | Jogada::RComer(_, _, _))
+    fn é_capturar(&self) -> bool {
+        matches!(self, Jogada::Capturar(_, _, _) | Jogada::RCapturar(_, _, _))
     }
 
     fn tem(&self, origem: Coord, destino: Coord) -> bool {
         match self {
-            Jogada::Mover(o, d) | Jogada::Comer(o, _, d) => *o == origem && *d == destino,
-            Jogada::RComer(o, _, d) => *o == origem && d.contains(&destino),
+            Jogada::Mover(o, d) | Jogada::Capturar(o, _, d) => *o == origem && *d == destino,
+            Jogada::RCapturar(o, _, d) => *o == origem && d.contains(&destino),
         }
     }
 }
@@ -191,7 +191,7 @@ impl Jogo {
         let jogada = jogada.into_iter().next().unwrap();
         match jogada {
             Jogada::Mover(_, _) => self.mover_sem_checar(origem, destino),
-            Jogada::Comer(_, comida, _) | Jogada::RComer(_, comida, _) => {
+            Jogada::Capturar(_, comida, _) | Jogada::RCapturar(_, comida, _) => {
                 self.mover_sem_checar(origem, destino);
                 *self.casa_mut(comida) = Casa::Vazia;
                 capturou = true;
@@ -208,8 +208,8 @@ impl Jogo {
             return JogadaResultado::FimDoJogo(self.vez);
         }
 
-        // Checar se da ou não para comer em sequencia. Passa o turno caso não de
-        if capturou && self.possiveis_jogadas(destino).iter().any(|j| j.é_comer()) {
+        // Checar se da ou não para capturar em sequencia. Passa o turno caso não de
+        if capturou && self.possiveis_jogadas(destino).iter().any(|j| j.é_capturar()) {
             JogadaResultado::Sequencia
         } else {
             self.passar_turno();
@@ -263,7 +263,7 @@ impl Jogo {
         // Computar casas comíveis
         let mut comiveis = vec![];
         for vizinho in coord.diagonais_comiveis() {
-            // Se o vizinho for vazio n tem o que comer
+            // Se o vizinho for vazio n tem o que capturar
             if let Casa::Vazia = self.casa(vizinho) {
                 continue;
             }
@@ -271,11 +271,11 @@ impl Jogo {
             if self.é_a_vez_de(self.peça(vizinho).unwrap()) {
                 continue;
             }
-            // Calcular aonde pular para comer a peça
+            // Calcular aonde pular para capturar a peça
             let pulo = coord.distancia(vizinho).vezes(2);
-            // Se a casa do pulo for vazia então da pra comer o vizinho
+            // Se a casa do pulo for vazia então da pra capturar o vizinho
             if self.casa(coord + pulo).é_vazia() {
-                comiveis.push(Jogada::Comer(coord, vizinho, coord + pulo));
+                comiveis.push(Jogada::Capturar(coord, vizinho, coord + pulo));
             }
         }
 
@@ -303,7 +303,7 @@ impl Jogo {
                         possiveis_pulos.push(pulo);
                         pulo = pulo + dir;
                     }
-                    comidas.push(Jogada::RComer(coord, atual, possiveis_pulos));
+                    comidas.push(Jogada::RCapturar(coord, atual, possiveis_pulos));
                 }
             }
         }
@@ -351,9 +351,9 @@ impl Jogo {
             .flat_map(|c| self.possiveis_jogadas(c))
             .collect_vec();
 
-        // Se tiver pelo menos uma jogada do tipo comer retorna só elas
-        if jogadas.iter().any(|j| j.é_comer()) {
-            jogadas.into_iter().filter(|j| j.é_comer()).collect()
+        // Se tiver pelo menos uma jogada do tipo 'capturar', retorna só elas
+        if jogadas.iter().any(|j| j.é_capturar()) {
+            jogadas.into_iter().filter(|j| j.é_capturar()).collect()
         } else {
             jogadas
         }
@@ -446,7 +446,7 @@ mod test {
         let coord = c(3, 5);
         assert_eq!(
             jogo.possiveis_jogadas(coord),
-            vec![Jogada::RComer(c(3, 5), c(5, 3), vec![c(6, 2), c(7, 1)])]
+            vec![Jogada::RCapturar(c(3, 5), c(5, 3), vec![c(6, 2), c(7, 1)])]
         );
 
         let coord = c(6, 5);
@@ -466,7 +466,7 @@ mod test {
         let coord = c(7, 5);
         assert_eq!(
             jogo.possiveis_jogadas(coord),
-            vec![Jogada::RComer(c(7, 5), c(5, 3), vec![c(4, 2)])]
+            vec![Jogada::RCapturar(c(7, 5), c(5, 3), vec![c(4, 2)])]
         );
     }
 
@@ -486,8 +486,8 @@ mod test {
         assert_eq!(
             jogo.todas_possiveis_jogadas(),
             vec![
-                Jogada::Comer(c(2, 4), c(1, 3), c(0, 2)),
-                Jogada::Comer(c(2, 4), c(3, 3), c(4, 2))
+                Jogada::Capturar(c(2, 4), c(1, 3), c(0, 2)),
+                Jogada::Capturar(c(2, 4), c(3, 3), c(4, 2))
             ]
         );
 
@@ -505,10 +505,10 @@ mod test {
         assert_eq!(
             jogo.todas_possiveis_jogadas(),
             vec![
-                Jogada::RComer(c(3, 3), c(5, 5), vec![c(6, 6), c(7, 7)]),
-                Jogada::RComer(c(3, 3), c(2, 2), vec![c(1, 1), c(0, 0)]),
-                Jogada::RComer(c(3, 3), c(4, 2), vec![c(5, 1), c(6, 0)]),
-                Jogada::RComer(c(3, 3), c(1, 5), vec![c(0, 6)])
+                Jogada::RCapturar(c(3, 3), c(5, 5), vec![c(6, 6), c(7, 7)]),
+                Jogada::RCapturar(c(3, 3), c(2, 2), vec![c(1, 1), c(0, 0)]),
+                Jogada::RCapturar(c(3, 3), c(4, 2), vec![c(5, 1), c(6, 0)]),
+                Jogada::RCapturar(c(3, 3), c(1, 5), vec![c(0, 6)])
             ]
         );
     }
