@@ -25,19 +25,19 @@ fn input(msg: &str) -> Coord {
 
 fn main() {
     let mut jogo = Jogo::default();
-    println!("{}", jogo);
     loop {
-        jogo.todas_possiveis_jogadas().into_iter().for_each(|x| print!("{:?} ", x));
-        println!();
-        let de = input("De: ");
+        println!("{}", jogo);
+        println!("Vez da {:?}:", jogo.vez);
+        jogo.todas_possiveis_jogadas().iter().for_each(|x| print!("{:?} ", x));
+        let de = input("\nDe  : ");
         let para = input("Para: ");
         let res = jogo.mover(de, para);
         clear_terminal();
         println!("{:?}", res);
         if let JogadaResultado::FimDoJogo(ganhador) = res {
+            println!("{}", jogo);
             println!("{} ganhou!!!", if matches!(ganhador, damas::jogo::Vez::Branca) {"Branco"} else {"Preto"});
             break;
         }
-        println!("{}\nVez da {:?}:", jogo, jogo.vez);
     }
 }
