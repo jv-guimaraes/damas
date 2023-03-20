@@ -27,7 +27,7 @@ fn main() {
     let mut jogo = Jogo::default();
     loop {
         println!("{}", jogo);
-        println!("Vez da {:?}:", jogo.vez);
+        println!("Vez do jogador {:?}:", jogo.vez);
         jogo.todas_possiveis_jogadas().iter().for_each(|x| print!("{:?} ", x));
         let de = input("\nDe  : ");
         let para = input("Para: ");
@@ -36,7 +36,7 @@ fn main() {
         println!("{:?}", res);
         if let JogadaResultado::FimDoJogo(ganhador) = res {
             println!("{}", jogo);
-            println!("Peça {:?} ganhou!!!", jogo.vez);
+            println!("{:?} ganhou!!!", ganhador);
             break;
         }
     }
