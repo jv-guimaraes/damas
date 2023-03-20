@@ -6,10 +6,10 @@ use crate::coord::{c, Coord};
 const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
     ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['.', '.', 'p', '.', 'p', '.', '.', '.'],
-    ['.', '.', '.', 'b', '.', '.', '.', '.'],
+    ['.', '.', '.', '.', 'p', '.', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
-    ['.', 'p', '.', '.', '.', 'p', '.', '.'],
+    ['.', '.', 'b', '.', '.', '.', '.', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
 ];
@@ -59,6 +59,13 @@ impl Peça {
         matches!(self, Peça::Preta | Peça::RainhaPreta)
     }
 
+    fn rainha(self) -> Self {
+        if self.é_branca() {
+            Peça::RainhaBranca
+        } else {
+            Peça::RainhaPreta
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -134,6 +141,14 @@ impl Display for Jogo {
     }
 }
 
+#[derive(Debug)]
+pub enum JogadaResultado {
+    Falha,          // Jogada invalida. Não passa o turno nem mexe no tabuleiro
+    Sucesso,        // Jogada válida e passa o turno. Não tem mais possiveis captura
+    Sequencia,      // Jogada válida e não passa o turno. Ainda tem pessas para capturar
+    FimDoJogo(Vez), // Jogada válida e fim do jogo. Retorna a vez de quem ganhou
+}
+
 impl Jogo {
     pub fn new(tabuleiro: [[char; 8]; 8]) -> Self {
         // Construir tabuleiro inicial
@@ -157,24 +172,49 @@ impl Jogo {
         }
     }
 
-    pub fn mover(&mut self, origem: Coord, destino: Coord) -> bool {
+    pub fn mover(&mut self, origem: Coord, destino: Coord) -> JogadaResultado {
+        // Filtrar todas as jogadas para encontrar a jogada que tem origem e destino correspondente ao input
         let jogada = self
             .todas_possiveis_jogadas()
             .into_iter()
             .filter(|jogada| jogada.tem(origem, destino))
             .collect_vec();
-        
-        if jogada.is_empty() { return false; }
+
+        // Caso não encontre uma jogada que mexe 'origem' para 'destino'
+        if jogada.is_empty() {
+            return JogadaResultado::Falha;
+        }
+
+        // Realizar a jogada que foi encontrada
+        let mut capturou = false; // Flag para saber se uma peça foi capturada
         assert!(jogada.len() == 1);
         let jogada = jogada.into_iter().next().unwrap();
         match jogada {
             Jogada::Mover(_, _) => self.mover_sem_checar(origem, destino),
-            Jogada::Comer(_, comida, _) | Jogada::RComer(_, comida, _)=> {
+            Jogada::Comer(_, comida, _) | Jogada::RComer(_, comida, _) => {
                 self.mover_sem_checar(origem, destino);
                 *self.casa_mut(comida) = Casa::Vazia;
-            },
+                capturou = true;
+            }
         }
-        true
+
+        // Transformar em rainha caso necessário
+        if destino.y == 7 || destino.y == 0 {
+            *self.casa_mut(destino) = Casa::Ocupada(self.peça(destino).unwrap().rainha())
+        }
+
+        // Checar se acabou o jogo
+        if capturou && self.acabou() {
+            return JogadaResultado::FimDoJogo(self.vez);
+        }
+
+        // Checar se da ou não para comer em sequencia. Passa o turno caso não de
+        if capturou && self.possiveis_jogadas(destino).iter().any(|j| j.é_comer()) {
+            JogadaResultado::Sequencia
+        } else {
+            self.passar_turno();
+            JogadaResultado::Sucesso
+        }
     }
 
     fn mover_sem_checar(&mut self, origem: Coord, destino: Coord) {
@@ -220,7 +260,7 @@ impl Jogo {
         // Transformar lista de coordenadas em Jogadas
         let andaveis = casas.into_iter().map(|c| Jogada::Mover(coord, c)).collect();
 
-        // Computar casa comíveis
+        // Computar casas comíveis
         let mut comiveis = vec![];
         for vizinho in coord.diagonais_comiveis() {
             // Se o vizinho for vazio n tem o que comer
@@ -255,7 +295,7 @@ impl Jogo {
                 movimentos.push(Jogada::Mover(coord, atual));
                 atual = atual + dir;
             }
-            if atual.é_valida() {
+            if atual.é_valida() && !self.é_a_vez_de(self.peça(atual).unwrap()) {
                 let mut pulo = (atual) + (coord.distancia(atual).normal());
                 if atual.é_valida() && pulo.é_valida() && self.casa(pulo).é_vazia() {
                     let mut possiveis_pulos = vec![];
@@ -331,6 +371,21 @@ impl Jogo {
             }
         }
         peças
+    }
+
+    fn acabou(&self) -> bool {
+        let mut count = 0;
+        for y in 0..8 {
+            for x in 0..8 {
+                if let Casa::Ocupada(peça) = self.tabuleiro[y][x] {
+                    if !self.é_a_vez_de(peça) {
+                        // encontrou uma peça do inimigo, logo, o jogo não acabou
+                        return false;
+                    }
+                }
+            }
+        }
+        true
     }
 }
 
