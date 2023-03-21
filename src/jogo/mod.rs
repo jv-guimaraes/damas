@@ -1,7 +1,18 @@
 use itertools::Itertools;
 use std::fmt::Display;
 
-use crate::coord::{c, Coord};
+mod jogador;
+mod casa;
+mod pedra;
+mod jogada;
+pub mod jogada_resultado;
+
+use super::coord::{c, Coord};
+use jogada::Jogada;
+use jogador::Jogador;
+use jogada_resultado::JogadaResultado;
+use casa::Casa;
+use pedra::Pedra;
 
 const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
     ['p','.','.','.','.','.','.','.'],
@@ -13,114 +24,6 @@ const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
     ['.','.','.','b','.','.','p','.'],
     ['b','.','.','.','.','.','.','b'],
 ];
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Jogador {
-    Branco,
-    Preto,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum Casa {
-    Ocupada(Peça),
-    Vazia,
-}
-
-impl Casa {
-    fn get_peça(self) -> Option<Peça> {
-        match self {
-            Casa::Ocupada(peça) => Some(peça),
-            Casa::Vazia => None,
-        }
-    }
-
-    fn é_vazia(self) -> bool {
-        match self {
-            Casa::Ocupada(_) => false,
-            Casa::Vazia => true,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Peça {
-    Branca,
-    DamaBranca,
-    Preta,
-    DamaPreta,
-}
-
-impl Peça {
-    fn é_branca(self) -> bool {
-        matches!(self, Peça::Branca | Peça::DamaBranca)
-    }
-
-    fn é_preta(self) -> bool {
-        matches!(self, Peça::Preta | Peça::DamaPreta)
-    }
-
-    fn dama(self) -> Self {
-        if self.é_branca() {
-            Peça::DamaBranca
-        } else {
-            Peça::DamaPreta
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Copy)]
-pub enum Jogada {
-    Mover(Coord, Coord),              // (origem, destino)
-    Capturar(Coord, Coord, Coord),       // (origem, comida, destino)
-}
-
-impl std::fmt::Debug for Jogada {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?} -> {:?}", self.origem(), self.destino())
-    }
-}
-
-impl Jogada {
-    fn origem(&self)-> Coord {
-        match self {
-            Jogada::Mover(o, _) => *o,
-            Jogada::Capturar(o, _, _) => *o,
-        }
-    }
-
-    fn destino(&self)-> Coord {
-        match self {
-            Jogada::Mover(_, d) => *d,
-            Jogada::Capturar(_, _, d) => *d,
-        }
-    }
-
-    fn captura(&self) -> Coord {
-        if let Jogada::Capturar(_, c, _) = self {
-            *c
-        } else {
-            panic!("{:?} não é uma captura!", self);
-        }
-    }
-
-    fn é_capturar(&self) -> bool {
-        matches!(self, Jogada::Capturar(_, _, _))
-    }
-
-    fn tem(&self, origem: Coord, destino: Coord) -> bool {
-        match self {
-            Jogada::Mover(o, d) | Jogada::Capturar(o, _, d) => *o == origem && *d == destino,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum JogadaResultado {
-    Falha,          // Jogada invalida. Não passa o turno nem mexe no tabuleiro
-    Sucesso,        // Jogada válida e passa o turno. Não tem mais possiveis captura
-    Sequencia,      // Jogada válida e não passa o turno. Ainda tem pessas para capturar
-    FimDoJogo(Jogador), // Jogada válida e fim do jogo. Retorna a vez de quem ganhou
-}
 
 #[derive(Debug, Clone)]
 pub struct Jogo {
@@ -135,10 +38,10 @@ impl Default for Jogo {
         for y in 0..tabuleiro.len() {
             for x in 0..tabuleiro.len() {
                 match TABULEIRO_INICIAL_CHARS[y][x] {
-                    'p' => tabuleiro[y][x] = Casa::Ocupada(Peça::Preta),
-                    'b' => tabuleiro[y][x] = Casa::Ocupada(Peça::Branca),
-                    'P' => tabuleiro[y][x] = Casa::Ocupada(Peça::DamaPreta),
-                    'B' => tabuleiro[y][x] = Casa::Ocupada(Peça::DamaBranca),
+                    'p' => tabuleiro[y][x] = Casa::Ocupada(Pedra::Preta),
+                    'b' => tabuleiro[y][x] = Casa::Ocupada(Pedra::Branca),
+                    'P' => tabuleiro[y][x] = Casa::Ocupada(Pedra::DamaPreta),
+                    'B' => tabuleiro[y][x] = Casa::Ocupada(Pedra::DamaBranca),
                     '.' => (),
                     c => panic!("{c} não é uma peça válida!"),
                 }
@@ -161,10 +64,10 @@ impl Display for Jogo {
             for x in 0..8 {
                 match self.tabuleiro[y][x] {
                     Casa::Ocupada(peça) => match peça {
-                        Peça::Branca => buffer.push_str(" x "),
-                        Peça::Preta => buffer.push_str(" o "),
-                        Peça::DamaBranca => buffer.push_str(" X "),
-                        Peça::DamaPreta => buffer.push_str(" O "),
+                        Pedra::Branca => buffer.push_str(" x "),
+                        Pedra::Preta => buffer.push_str(" o "),
+                        Pedra::DamaBranca => buffer.push_str(" X "),
+                        Pedra::DamaPreta => buffer.push_str(" O "),
                     },
                     Casa::Vazia => buffer.push_str(" . "),
                 }
@@ -182,10 +85,10 @@ impl Jogo {
         for y in 0..tab.len() {
             for x in 0..tab.len() {
                 match tabuleiro[y][x] {
-                    'p' => tab[y][x] = Casa::Ocupada(Peça::Preta),
-                    'b' => tab[y][x] = Casa::Ocupada(Peça::Branca),
-                    'P' => tab[y][x] = Casa::Ocupada(Peça::DamaPreta),
-                    'B' => tab[y][x] = Casa::Ocupada(Peça::DamaBranca),
+                    'p' => tab[y][x] = Casa::Ocupada(Pedra::Preta),
+                    'b' => tab[y][x] = Casa::Ocupada(Pedra::Branca),
+                    'P' => tab[y][x] = Casa::Ocupada(Pedra::DamaPreta),
+                    'B' => tab[y][x] = Casa::Ocupada(Pedra::DamaBranca),
                     '.' => (),
                     c => panic!("{c} não é uma peça válida!"),
                 }
@@ -275,7 +178,7 @@ impl Jogo {
         // sequencias
     }
 
-    fn calcular_capturas_recursivamente(&self, origem: Coord, stack: &mut Vec<Jogada>, sequencias: &mut Vec<Vec<Jogada>>, peça: Peça) {
+    fn calcular_capturas_recursivamente(&self, origem: Coord, stack: &mut Vec<Jogada>, sequencias: &mut Vec<Vec<Jogada>>, peça: Pedra) {
         // println!("origem: {:?}", origem);
         // println!("stack: {:?}", stack);
         // println!("sequencias: {:?}", sequencias.len());
@@ -302,10 +205,10 @@ impl Jogo {
         // println!("{:?}", stack);
     }
 
-    fn capturas_imediatas(&self, origem: Coord, peça: Peça) -> Vec<Jogada> {
+    fn capturas_imediatas(&self, origem: Coord, peça: Pedra) -> Vec<Jogada> {
         match peça {
-            Peça::Branca | Peça::Preta => self.capturas_imediatas_peão(origem),
-            Peça::DamaBranca | Peça::DamaPreta => self.capturas_imediatas_dama(origem),
+            Pedra::Branca | Pedra::Preta => self.capturas_imediatas_peão(origem),
+            Pedra::DamaBranca | Pedra::DamaPreta => self.capturas_imediatas_dama(origem),
         }
     }
 
@@ -345,8 +248,8 @@ impl Jogo {
 
     pub fn calcular_movimentos(&self, origem: Coord) -> Vec<Jogada> {
         match self.peça(origem).unwrap() {
-            Peça::Branca | Peça::Preta => self.movimentos_peão(origem),
-            Peça::DamaBranca | Peça::DamaPreta => self.movimentos_dama(origem),
+            Pedra::Branca | Pedra::Preta => self.movimentos_peão(origem),
+            Pedra::DamaBranca | Pedra::DamaPreta => self.movimentos_dama(origem),
         }
     }
 
@@ -364,8 +267,8 @@ impl Jogo {
 
     pub fn movimentos_peão(&self, origem: Coord) -> Vec<Jogada> {
         let diagonais = match self.peça(origem).unwrap() {
-            Peça::Branca => origem.diagonais_frente(),
-            Peça::Preta => origem.diagonais_atrás(),
+            Pedra::Branca => origem.diagonais_frente(),
+            Pedra::Preta => origem.diagonais_atrás(),
             _ => panic!(),
         };
         diagonais
@@ -375,8 +278,8 @@ impl Jogo {
             .collect()
     }
 
-    fn peça(&self, coord: Coord) -> Option<Peça> {
-        self.casa(coord).get_peça()
+    fn peça(&self, coord: Coord) -> Option<Pedra> {
+        self.casa(coord).peça()
     }
 
     fn casa(&self, coord: Coord) -> Casa {
@@ -387,7 +290,7 @@ impl Jogo {
         &mut self.tabuleiro[coord.y as usize][coord.x as usize]
     }
 
-    fn é_a_vez_de(&self, peça: Peça) -> bool {
+    fn é_a_vez_de(&self, peça: Pedra) -> bool {
         if peça.é_branca() && self.vez == Jogador::Preto {
             return false;
         }
@@ -465,6 +368,5 @@ impl Jogo {
 
 mod test {
     use super::*;
-
 
 }

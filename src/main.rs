@@ -1,7 +1,7 @@
 #![allow(unused)]
 #![allow(clippy::redundant_clone)]
 use damas::jogo::Jogo;
-use damas::jogo::JogadaResultado;
+use damas::jogo::jogada_resultado::JogadaResultado;
 use damas::coord::c;
 use damas::coord::Coord;
 
