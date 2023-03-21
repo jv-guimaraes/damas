@@ -15,7 +15,7 @@ const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Vez {
+pub enum Jogador {
     Branco,
     Preto,
 }
@@ -119,13 +119,13 @@ pub enum JogadaResultado {
     Falha,          // Jogada invalida. Não passa o turno nem mexe no tabuleiro
     Sucesso,        // Jogada válida e passa o turno. Não tem mais possiveis captura
     Sequencia,      // Jogada válida e não passa o turno. Ainda tem pessas para capturar
-    FimDoJogo(Vez), // Jogada válida e fim do jogo. Retorna a vez de quem ganhou
+    FimDoJogo(Jogador), // Jogada válida e fim do jogo. Retorna a vez de quem ganhou
 }
 
 #[derive(Debug, Clone)]
 pub struct Jogo {
     tabuleiro: [[Casa; 8]; 8],
-    pub vez: Vez,
+    pub vez: Jogador,
 }
 
 impl Default for Jogo {
@@ -147,7 +147,7 @@ impl Default for Jogo {
         // Começar o jogo com a peça branca
         Jogo {
             tabuleiro,
-            vez: Vez::Branco,
+            vez: Jogador::Branco,
         }
     }
 }
@@ -194,7 +194,7 @@ impl Jogo {
         // Começar o jogo com a peça branca
         Jogo {
             tabuleiro: tab,
-            vez: Vez::Branco,
+            vez: Jogador::Branco,
         }
     }
 
@@ -388,10 +388,10 @@ impl Jogo {
     }
 
     fn é_a_vez_de(&self, peça: Peça) -> bool {
-        if peça.é_branca() && self.vez == Vez::Preto {
+        if peça.é_branca() && self.vez == Jogador::Preto {
             return false;
         }
-        if peça.é_preta() && self.vez == Vez::Branco {
+        if peça.é_preta() && self.vez == Jogador::Branco {
             return false;
         }
         true
@@ -399,8 +399,8 @@ impl Jogo {
 
     fn passar_turno(&mut self) {
         self.vez = match self.vez {
-            Vez::Branco => Vez::Preto,
-            Vez::Preto => Vez::Branco,
+            Jogador::Branco => Jogador::Preto,
+            Jogador::Preto => Jogador::Branco,
         }
     }
 
