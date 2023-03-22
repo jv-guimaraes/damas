@@ -39,7 +39,7 @@ impl Jogada {
         matches!(self, Jogada::Capturar(_, _, _))
     }
 
-    fn tem(&self, origem: Coord, destino: Coord) -> bool {
+    pub fn tem(&self, origem: Coord, destino: Coord) -> bool {
         match self {
             Jogada::Mover(o, d) | Jogada::Capturar(o, _, d) => *o == origem && *d == destino,
         }

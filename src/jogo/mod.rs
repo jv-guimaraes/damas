@@ -1,3 +1,4 @@
+#![allow(unused)]
 use itertools::Itertools;
 use std::fmt::Display;
 
@@ -8,21 +9,21 @@ mod jogada;
 pub mod jogada_resultado;
 
 use super::coord::{c, Coord};
-use jogada::Jogada;
-use jogador::Jogador;
-use jogada_resultado::JogadaResultado;
-use casa::Casa;
-use pedra::Pedra;
+use self::jogada::Jogada;
+use self::jogador::Jogador;
+use self::jogada_resultado::JogadaResultado;
+use self::casa::Casa;
+use self::pedra::Pedra;
 
 const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
-    ['p','.','.','.','.','.','.','.'],
-    ['.','.','.','.','.','.','.','.'],
-    ['.','.','.','.','.','.','.','.'],
-    ['.','.','.','.','.','.','p','.'],
-    ['.','.','.','.','.','.','.','.'],
-    ['.','.','.','.','p','.','.','.'],
-    ['.','.','.','b','.','.','p','.'],
-    ['b','.','.','.','.','.','.','b'],
+    ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
+    ['.', 'p', '.', 'p', '.', 'p', '.', 'p'],
+    ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
+    ['.', '.', '.', '.', '.', '.', '.', '.'],
+    ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
+    ['.', 'b', '.', 'b', '.', 'b', '.', 'b'],
+    ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
 ];
 
 #[derive(Debug, Clone)]
@@ -79,7 +80,7 @@ impl Display for Jogo {
 }
 
 impl Jogo {
-    pub fn new(tabuleiro: [[char; 8]; 8]) -> Self {
+    fn new(tabuleiro: [[char; 8]; 8]) -> Self {
         // Construir tabuleiro inicial
         let mut tab = [[Casa::Vazia; 8]; 8];
         for y in 0..tab.len() {
@@ -102,13 +103,8 @@ impl Jogo {
     }
 
     pub fn mover(&mut self, origem: Coord, destino: Coord) -> JogadaResultado {
-        // // Filtrar todas as jogadas para encontrar a jogada que tem origem e destino correspondente ao input
-        // let jogada = self
-        //     .todas_possiveis_jogadas()
-        //     .into_iter()
-        //     .filter(|jogada| jogada.tem(origem, destino))
-        //     .collect_vec();
-
+        self.todas_jogadas_possiveis().iter().for_each(|j| println!("{:?}", j));
+        std::process::exit(0);
         // // Caso não encontre uma jogada que move 'origem' para 'destino'
         // if jogada.is_empty() {
         //     return JogadaResultado::Falha;
@@ -162,7 +158,7 @@ impl Jogo {
         *self.casa_mut(origem) = Casa::Vazia;
     }
 
-    pub fn calcular_capturas(&self, origem: Coord) -> Vec<Vec<Jogada>> {
+    fn calcular_capturas(&self, origem: Coord) -> Vec<Vec<Jogada>> {
         let mut stack: Vec<Jogada> = vec![];
         let mut sequencias: Vec<Vec<Jogada>> = vec![];
         let peça = self.peça(origem);
@@ -234,7 +230,7 @@ impl Jogo {
 
     fn capturas_imediatas_peão(&self, origem: Coord) -> Vec<Jogada> {
         let mut capturas = vec![];
-        for vizinho in origem.diagonais_comiveis() {
+        for vizinho in origem.diagonais_de_captura() {
             if let Casa::Ocupada(peça) = self.casa(vizinho) {
                 if self.é_a_vez_de(peça) { continue; }
                 let destino = vizinho + origem.distancia(vizinho);
@@ -246,14 +242,14 @@ impl Jogo {
         capturas
     }
 
-    pub fn calcular_movimentos(&self, origem: Coord) -> Vec<Jogada> {
+    fn calcular_movimentos(&self, origem: Coord) -> Vec<Jogada> {
         match self.peça(origem).unwrap() {
             Pedra::Branca | Pedra::Preta => self.movimentos_peão(origem),
             Pedra::DamaBranca | Pedra::DamaPreta => self.movimentos_dama(origem),
         }
     }
 
-    pub fn movimentos_dama(&self, origem: Coord) -> Vec<Jogada> {
+    fn movimentos_dama(&self, origem: Coord) -> Vec<Jogada> {
         let mut movimentos = vec![];
         for dir in [c(1, 1), c(-1, -1), c(1, -1), c(-1, 1)] {
             let mut atual = origem + dir;
@@ -265,10 +261,10 @@ impl Jogo {
         movimentos
     }
 
-    pub fn movimentos_peão(&self, origem: Coord) -> Vec<Jogada> {
+    fn movimentos_peão(&self, origem: Coord) -> Vec<Jogada> {
         let diagonais = match self.peça(origem).unwrap() {
-            Pedra::Branca => origem.diagonais_frente(),
-            Pedra::Preta => origem.diagonais_atrás(),
+            Pedra::Branca => origem.diagonais_superiores(),
+            Pedra::Preta => origem.diagonais_inferiores(),
             _ => panic!(),
         };
         diagonais
@@ -335,7 +331,7 @@ impl Jogo {
         true
     }
 
-    pub fn todas_capturas_possiveis(&self) -> Vec<Vec<Jogada>> {
+    fn todas_capturas_possiveis(&self) -> Vec<Vec<Jogada>> {
         let mut capturas = vec![];
         let peças = self.peças_da_cor_atual();
         for peça in peças {
@@ -347,11 +343,13 @@ impl Jogo {
         capturas.into_iter().filter(|x| x.len() == maior_len).collect()
     }
 
-    pub fn todos_movimentos_possiveis(&self) -> Vec<Vec<Jogada>> {
+    fn todos_movimentos_possiveis(&self) -> Vec<Vec<Jogada>> {
         let mut movimentos = vec![];
         let peças = self.peças_da_cor_atual();
         for peça in peças {
-            movimentos.push(self.calcular_movimentos(peça));
+            for movimento in self.calcular_movimentos(peça).into_iter() {
+                movimentos.push(vec![movimento]);
+            }
         }
         movimentos.into_iter().filter(|x| !x.is_empty()).collect()
     }
@@ -367,6 +365,5 @@ impl Jogo {
 }
 
 mod test {
-    use super::*;
 
 }

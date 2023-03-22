@@ -6,16 +6,8 @@ pub struct Coord {
     pub y: i32,
 }
 
-impl Add for Coord {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        Self {x: self.x + other.x, y: self.y + other.y}
-    }
-}
-
 impl Coord {
-    pub fn diagonais_comiveis(self) -> Vec<Coord> {
+    pub fn diagonais_de_captura(self) -> Vec<Coord> {
         let mut diagonais = vec![];
         for (i, j) in [(1, 1), (-1, -1),(1, -1), (-1, 1)] {
             let (x, y) = (self.x + i, self.y + j);
@@ -26,7 +18,7 @@ impl Coord {
         diagonais
     }
 
-    pub fn diagonais_frente(self) -> Vec<Coord> {
+    pub fn diagonais_superiores(self) -> Vec<Coord> {
         let mut diagonais: Vec<Coord> = Vec::new();
         if self.y == 0 {
             return diagonais;
@@ -42,7 +34,7 @@ impl Coord {
         diagonais
     }
 
-    pub fn diagonais_atrás(self) -> Vec<Coord> {
+    pub fn diagonais_inferiores(self) -> Vec<Coord> {
         let mut diagonais: Vec<Coord> = Vec::new();
         if self.y == 7 {
             return diagonais;
@@ -100,6 +92,14 @@ impl Debug for Coord {
     }
 }
 
+impl Add for Coord {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {x: self.x + other.x, y: self.y + other.y}
+    }
+}
+
 pub fn c(x: i32, y: i32) -> Coord {
     Coord { x, y }
 }
@@ -117,20 +117,20 @@ fn é_valida(x: i32, y: i32) -> bool {
 #[test]
 fn testar_diagonais() {
     let coord = c(2, 5);
-    assert_eq!(coord.diagonais_frente(), vec![c(1, 4), c(3, 4)]);
-    assert_eq!(coord.diagonais_atrás(), vec![c(1, 6), c(3, 6)]);
+    assert_eq!(coord.diagonais_superiores(), vec![c(1, 4), c(3, 4)]);
+    assert_eq!(coord.diagonais_inferiores(), vec![c(1, 6), c(3, 6)]);
 
     let coord = c(0, 0);
-    assert_eq!(coord.diagonais_frente(), vec![]);
-    assert_eq!(coord.diagonais_atrás(), vec![c(1, 1)]);
+    assert_eq!(coord.diagonais_superiores(), vec![]);
+    assert_eq!(coord.diagonais_inferiores(), vec![c(1, 1)]);
     
     let coord = c(7, 7);
-    assert_eq!(coord.diagonais_frente(), vec![c(6, 6)]);
-    assert_eq!(coord.diagonais_atrás(), vec![]);
+    assert_eq!(coord.diagonais_superiores(), vec![c(6, 6)]);
+    assert_eq!(coord.diagonais_inferiores(), vec![]);
     
     let coord = c(7, 4);
-    assert_eq!(coord.diagonais_frente(), vec![c(6, 3)]);
-    assert_eq!(coord.diagonais_atrás(), vec![c(6, 5)]);
+    assert_eq!(coord.diagonais_superiores(), vec![c(6, 3)]);
+    assert_eq!(coord.diagonais_inferiores(), vec![c(6, 5)]);
 
     let coord = c(3, 3);
     assert_eq!(
@@ -153,10 +153,10 @@ fn testar_diagonais() {
     assert_eq!(coord.diagonais_rainha(), vec![c(6,6), c(5,5), c(4,4), c(3,3), c(2,2), c(1,1), c(0,0)]);
 
     let coord = c(3, 3);
-    assert_eq!(coord.diagonais_comiveis(), vec![c(4,4), c(2,2), c(4,2), c(2,4)]);
+    assert_eq!(coord.diagonais_de_captura(), vec![c(4,4), c(2,2), c(4,2), c(2,4)]);
 
     let coord = c(7, 7);
-    assert_eq!(coord.diagonais_comiveis(), vec![c(6, 6)]);
+    assert_eq!(coord.diagonais_de_captura(), vec![c(6, 6)]);
 
 
 }
