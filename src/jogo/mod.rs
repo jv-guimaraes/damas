@@ -1,24 +1,24 @@
-#![allow(unused)]
 use itertools::Itertools;
 use std::fmt::Display;
 
+mod coord;
 mod jogador;
 mod casa;
 mod pedra;
-mod jogada;
-pub mod jogada_resultado;
+pub mod jogada;
+pub mod resultado;
 
-use super::coord::{c, Coord};
+use self::coord::{c, Coord};
 use self::jogada::Jogada;
 use self::jogador::Jogador;
-use self::jogada_resultado::JogadaResultado;
+use self::resultado::Resultado;
 use self::casa::Casa;
 use self::pedra::Pedra;
 
 const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
-    ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
     ['.', 'p', '.', 'p', '.', 'p', '.', 'p'],
     ['p', '.', 'p', '.', 'p', '.', 'p', '.'],
+    ['.', 'p', '.', 'p', '.', 'p', '.', 'p'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['.', '.', '.', '.', '.', '.', '.', '.'],
     ['b', '.', 'b', '.', 'b', '.', 'b', '.'],
@@ -29,7 +29,7 @@ const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
 #[derive(Debug, Clone)]
 pub struct Jogo {
     tabuleiro: [[Casa; 8]; 8],
-    pub vez: Jogador,
+    vez: Jogador,
 }
 
 impl Default for Jogo {
@@ -80,7 +80,7 @@ impl Display for Jogo {
 }
 
 impl Jogo {
-    fn new(tabuleiro: [[char; 8]; 8]) -> Self {
+    fn _new(tabuleiro: [[char; 8]; 8]) -> Self {
         // Construir tabuleiro inicial
         let mut tab = [[Casa::Vazia; 8]; 8];
         for y in 0..tab.len() {
@@ -102,45 +102,46 @@ impl Jogo {
         }
     }
 
-    pub fn mover(&mut self, origem: Coord, destino: Coord) -> JogadaResultado {
-        self.todas_jogadas_possiveis().iter().for_each(|j| println!("{:?}", j));
-        std::process::exit(0);
-        // // Caso não encontre uma jogada que move 'origem' para 'destino'
-        // if jogada.is_empty() {
-        //     return JogadaResultado::Falha;
-        // }
+    pub fn jogar(&mut self, jogada: usize) -> Resultado {
+        // Checar se a jogada escolhida é válida
+        let todas_jogadas = self.todas_jogadas_possiveis();
+        let jogada = todas_jogadas.get(jogada);
+        if jogada.is_none() {
+            return Resultado::Falha;
+        }
 
-        // // Realizar a jogada que foi encontrada
-        // let mut capturou = false; // Flag para saber se uma peça foi capturada
-        // assert!(jogada.len() == 1);
-        // let jogada = jogada.into_iter().next().unwrap();
-        // match jogada {
-        //     Jogada::Mover(_, _) => self.mover_sem_checar(origem, destino),
-        //     Jogada::Capturar(_, comida, _) | Jogada::DCapturar(_, comida, _) => {
-        //         self.mover_sem_checar(origem, destino);
-        //         *self.casa_mut(comida) = Casa::Vazia;
-        //         capturou = true;
-        //     }
-        // }
+        // Executar  a jogada
+        let jogada = jogada.unwrap();
+        for jogada in jogada {
+            self.executar_jogada(*jogada);
+        }
 
-        // // Transformar em dama caso necessário
-        // if destino.y == 7 || destino.y == 0 {
-        //     *self.casa_mut(destino) = Casa::Ocupada(self.peça(destino).unwrap().dama())
-        // }
+        // Checar se deve virar dama
+        let casa_final = jogada.last().unwrap().destino();
+        if casa_final.está_na_faixa_de_damas() {
+            *self.casa_mut(casa_final) = Casa::Ocupada(self.peça(casa_final).unwrap().dama());
+        }
 
-        // // Checar se acabou o jogo
-        // if capturou && self.acabou() {
-        //     return JogadaResultado::FimDoJogo(self.vez);
-        // }
+        // Checar se acabou o jogo
+        if self.acabou() {
+            return Resultado::FimDoJogo(self.vez);
+        }
 
-        // // Checar se da ou não para capturar em sequencia. Passa o turno caso não de
-        // if capturou && self.possiveis_jogadas(destino).iter().any(|j| j.é_capturar()) {
-        //     JogadaResultado::Sequencia
-        // } else {
-        //     self.passar_turno();
-        //     JogadaResultado::Sucesso
-        // }
-        todo!()
+        self.passar_turno();
+        Resultado::Sucesso
+    }
+
+    pub fn todas_jogadas_possiveis(&self) -> Vec<Vec<Jogada>> {
+        let capturas = self.todas_capturas_possiveis();
+        if capturas.is_empty() {
+            self.todos_movimentos_possiveis()
+        } else {
+            capturas
+        }
+    }
+
+    pub fn get_vez(&self) -> &Jogador {
+        &self.vez
     }
 
     fn executar_jogada(&mut self, jogada: Jogada) {
@@ -318,15 +319,13 @@ impl Jogo {
     }
 
     fn acabou(&self) -> bool {
-        for y in 0..8 {
-            for x in 0..8 {
-                if let Casa::Ocupada(peça) = self.tabuleiro[y][x] {
-                    if !self.é_a_vez_de(peça) {
-                        // encontrou uma peça do inimigo, logo, o jogo não acabou
-                        return false;
-                    }
+        for casa in self.tabuleiro.iter().flatten() {
+            if let Casa::Ocupada(peça) = *casa {
+                if !self.é_a_vez_de(peça) {
+                    // encontrou uma peça do inimigo, logo, o jogo não acabou
+                    return false;
                 }
-            }
+            } 
         }
         true
     }
@@ -352,15 +351,6 @@ impl Jogo {
             }
         }
         movimentos.into_iter().filter(|x| !x.is_empty()).collect()
-    }
-
-    pub fn todas_jogadas_possiveis(&self) -> Vec<Vec<Jogada>> {
-        let capturas = self.todas_capturas_possiveis();
-        if capturas.is_empty() {
-            self.todos_movimentos_possiveis()
-        } else {
-            capturas
-        }
     }
 }
 

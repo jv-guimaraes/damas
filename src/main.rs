@@ -1,10 +1,8 @@
 #![allow(unused)]
-#![allow(clippy::redundant_clone)]
-use damas::jogo::Jogo;
-use damas::coord::c;
-use damas::coord::Coord;
+use damas::Jogo;
+use damas::Jogada;
+use damas::Resultado;
 
-use itertools::Itertools;
 use std::io::Write;
 use std::io;
 
@@ -12,15 +10,20 @@ fn clear_terminal() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 }
 
-fn input(msg: &str) -> Coord {
+fn input(msg: &str) -> usize {
     print!("{msg} ");
     io::stdout().flush();
     let mut buffer = String::new();
     io::stdin().read_line(&mut buffer).expect("failed to read stdin");
-    buffer.trim().to_string();
-    let (x, y) = buffer.split_ascii_whitespace().collect_tuple().unwrap();
-    let (x, y): (i32, i32) = (x.parse().unwrap(), y.parse().unwrap());
-    c(x, y)
+    buffer.trim().parse().unwrap()
+}
+
+fn print_lista_de_jogadas(jogadas: Vec<Vec<Jogada>>) {
+    for (i, jogada) in jogadas.iter().enumerate() {
+        print!("{i}: {:?}   ", jogada);
+        if (i+1) % 3 == 0 { println!(); }
+    }
+    println!();
 }
 
 fn main() {
@@ -28,8 +31,14 @@ fn main() {
 
     loop {
         println!("{}", jogo);
-        let de = input("De  : ");
-        let para = input("Para: ");
-        jogo.mover(de, para);
+        print_lista_de_jogadas(jogo.todas_jogadas_possiveis());
+        let jogada = input(&format!("Vez do {:?}: ", jogo.get_vez()));
+        if let Resultado::FimDoJogo(ganhador) = jogo.jogar(jogada) {
+            clear_terminal();
+            println!("{}", jogo);
+            println!("{:?} ganhou!!!", ganhador);
+            std::process::exit(0);
+        }
+        clear_terminal();
     }
 }

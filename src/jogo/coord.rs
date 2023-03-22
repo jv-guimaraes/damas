@@ -84,6 +84,10 @@ impl Coord {
         }
         true
     }
+
+    pub fn está_na_faixa_de_damas(self) -> bool {
+        self.y == 0 || self.y == 7
+    }
 }
 
 impl Debug for Coord {

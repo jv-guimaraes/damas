@@ -1,4 +1,4 @@
-use crate::coord::Coord;
+use super::coord::Coord;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Jogada {
@@ -32,16 +32,6 @@ impl Jogada {
             *c
         } else {
             panic!("{:?} não é uma captura!", self);
-        }
-    }
-
-    fn é_capturar(&self) -> bool {
-        matches!(self, Jogada::Capturar(_, _, _))
-    }
-
-    pub fn tem(&self, origem: Coord, destino: Coord) -> bool {
-        match self {
-            Jogada::Mover(o, d) | Jogada::Capturar(o, _, d) => *o == origem && *d == destino,
         }
     }
 }
