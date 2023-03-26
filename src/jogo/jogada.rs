@@ -13,7 +13,7 @@ impl std::fmt::Debug for Jogada {
 }
 
 impl Jogada {
-    fn origem(&self)-> Coord {
+    pub fn origem(&self)-> Coord {
         match self {
             Jogada::Mover(o, _) => *o,
             Jogada::Capturar(o, _, _) => *o,

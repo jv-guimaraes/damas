@@ -15,7 +15,11 @@ impl Pedra {
         matches!(self, Pedra::Preta | Pedra::DamaPreta)
     }
 
-    pub fn dama(self) -> Self {
+    pub fn é_dama(self) -> bool {
+        matches!(self, Pedra::DamaPreta | Pedra::DamaBranca)
+    }
+
+    pub(crate) fn dama(self) -> Self {
         if self.é_branca() {
             Pedra::DamaBranca
         } else {

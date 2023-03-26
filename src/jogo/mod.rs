@@ -1,10 +1,10 @@
 use itertools::Itertools;
 use std::fmt::Display;
 
-mod coord;
+pub mod coord;
 mod jogador;
-mod casa;
-mod pedra;
+pub mod casa;
+pub mod pedra;
 pub mod jogada;
 pub mod resultado;
 
@@ -27,12 +27,13 @@ const TABULEIRO_INICIAL_CHARS: [[char; 8]; 8] = [
 ];
 
 #[derive(Debug, Clone)]
-pub struct Jogo {
+pub struct Partida {
     tabuleiro: [[Casa; 8]; 8],
     vez: Jogador,
+    jogadas: Vec<Vec<Jogada>>,
 }
 
-impl Default for Jogo {
+impl Default for Partida {
     fn default() -> Self {
         // Construir tabuleiro inicial
         let mut tabuleiro = [[Casa::Vazia; 8]; 8];
@@ -49,14 +50,17 @@ impl Default for Jogo {
             }
         }
         // Começar o jogo com a peça branca
-        Jogo {
+        let mut p = Partida {
             tabuleiro,
             vez: Jogador::Branco,
-        }
+            jogadas: vec![],
+        };
+        p.jogadas = p._todas_jogadas_possiveis();
+        p
     }
 }
 
-impl Display for Jogo {
+impl Display for Partida {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut buffer = String::new();
         buffer.push_str("   0  1  2  3  4  5  6  7\n");
@@ -79,32 +83,10 @@ impl Display for Jogo {
     }
 }
 
-impl Jogo {
-    fn _new(tabuleiro: [[char; 8]; 8]) -> Self {
-        // Construir tabuleiro inicial
-        let mut tab = [[Casa::Vazia; 8]; 8];
-        for y in 0..tab.len() {
-            for x in 0..tab.len() {
-                match tabuleiro[y][x] {
-                    'p' => tab[y][x] = Casa::Ocupada(Pedra::Preta),
-                    'b' => tab[y][x] = Casa::Ocupada(Pedra::Branca),
-                    'P' => tab[y][x] = Casa::Ocupada(Pedra::DamaPreta),
-                    'B' => tab[y][x] = Casa::Ocupada(Pedra::DamaBranca),
-                    '.' => (),
-                    c => panic!("{c} não é uma peça válida!"),
-                }
-            }
-        }
-        // Começar o jogo com a peça branca
-        Jogo {
-            tabuleiro: tab,
-            vez: Jogador::Branco,
-        }
-    }
-
+impl Partida {
     pub fn jogar(&mut self, jogada: usize) -> Resultado {
         // Checar se a jogada escolhida é válida
-        let todas_jogadas = self.todas_jogadas_possiveis();
+        let todas_jogadas = self._todas_jogadas_possiveis();
         let jogada = todas_jogadas.get(jogada);
         if jogada.is_none() {
             return Resultado::Falha;
@@ -131,7 +113,11 @@ impl Jogo {
         Resultado::Sucesso
     }
 
-    pub fn todas_jogadas_possiveis(&self) -> Vec<Vec<Jogada>> {
+    pub fn todas_jogadas_possiveis(&self) -> &Vec<Vec<Jogada>> {
+        &self.jogadas
+    }
+
+    fn _todas_jogadas_possiveis(&self) -> Vec<Vec<Jogada>> {
         let capturas = self.todas_capturas_possiveis();
         if capturas.is_empty() {
             self.todos_movimentos_possiveis()
@@ -142,6 +128,35 @@ impl Jogo {
 
     pub fn get_vez(&self) -> &Jogador {
         &self.vez
+    }
+
+    pub fn get_tabuleiro(&self) -> &[[Casa; 8]; 8] {
+        &self.tabuleiro
+    }
+
+    pub fn new(tabuleiro: [[char; 8]; 8]) -> Self {
+        // Construir tabuleiro inicial
+        let mut tab = [[Casa::Vazia; 8]; 8];
+        for y in 0..tab.len() {
+            for x in 0..tab.len() {
+                match tabuleiro[y][x] {
+                    'p' => tab[y][x] = Casa::Ocupada(Pedra::Preta),
+                    'b' => tab[y][x] = Casa::Ocupada(Pedra::Branca),
+                    'P' => tab[y][x] = Casa::Ocupada(Pedra::DamaPreta),
+                    'B' => tab[y][x] = Casa::Ocupada(Pedra::DamaBranca),
+                    '.' => (),
+                    c => panic!("{c} não é uma peça válida!"),
+                }
+            }
+        }
+        // Começar o jogo com a peça branca
+        let mut p = Partida {
+            tabuleiro: tab,
+            vez: Jogador::Branco,
+            jogadas: vec![],
+        };
+        p.jogadas = p._todas_jogadas_possiveis();
+        p
     }
 
     fn executar_jogada(&mut self, jogada: Jogada) {
@@ -301,7 +316,8 @@ impl Jogo {
         self.vez = match self.vez {
             Jogador::Branco => Jogador::Preto,
             Jogador::Preto => Jogador::Branco,
-        }
+        };
+        self.jogadas = self._todas_jogadas_possiveis();
     }
 
     fn peças_da_cor_atual(&self) -> Vec<Coord> {
