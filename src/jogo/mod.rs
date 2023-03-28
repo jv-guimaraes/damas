@@ -101,7 +101,10 @@ impl Partida {
         // Checar se deve virar dama
         let casa_final = jogada.last().unwrap().destino();
         if casa_final.está_na_faixa_de_damas() {
-            *self.casa_mut(casa_final) = Casa::Ocupada(self.peça(casa_final).unwrap().dama());
+            let peça = self.peça(casa_final).unwrap();
+            if peça.é_branca() && (casa_final.y == 0) || peça.é_preta() && (casa_final.y == 7) {
+                *self.casa_mut(casa_final) = Casa::Ocupada(self.peça(casa_final).unwrap().dama());
+            }
         }
 
         // Checar se acabou o jogo
