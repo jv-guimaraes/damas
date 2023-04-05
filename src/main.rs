@@ -1,5 +1,5 @@
 #![allow(unused)]
-use damas::Jogo;
+use damas::Partida;
 use damas::Jogada;
 use damas::Resultado;
 
@@ -27,11 +27,11 @@ fn print_lista_de_jogadas(jogadas: Vec<Vec<Jogada>>) {
 }
 
 fn main() {
-    let mut jogo = Jogo::default();
+    let mut jogo = Partida::default();
 
     loop {
         println!("{}", jogo);
-        print_lista_de_jogadas(jogo.todas_jogadas_possiveis());
+        print_lista_de_jogadas(jogo.todas_jogadas_possiveis().to_vec());
         let jogada = input(&format!("Vez do {:?}: ", jogo.get_vez()));
         if let Resultado::FimDoJogo(ganhador) = jogo.jogar(jogada) {
             clear_terminal();

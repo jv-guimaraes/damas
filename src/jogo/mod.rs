@@ -101,9 +101,9 @@ impl Partida {
         // Checar se deve virar dama
         let casa_final = jogada.last().unwrap().destino();
         if casa_final.está_na_faixa_de_damas() {
-            let peça = self.peça(casa_final).unwrap();
+            let peça = self.pedra(casa_final).unwrap();
             if peça.é_branca() && (casa_final.y == 0) || peça.é_preta() && (casa_final.y == 7) {
-                *self.casa_mut(casa_final) = Casa::Ocupada(self.peça(casa_final).unwrap().dama());
+                *self.casa_mut(casa_final) = Casa::Ocupada(self.pedra(casa_final).unwrap().dama());
             }
         }
 
@@ -180,7 +180,7 @@ impl Partida {
     fn calcular_capturas(&self, origem: Coord) -> Vec<Vec<Jogada>> {
         let mut stack: Vec<Jogada> = vec![];
         let mut sequencias: Vec<Vec<Jogada>> = vec![];
-        let peça = self.peça(origem);
+        let peça = self.pedra(origem);
         if peça.is_none() { return vec![vec![]];}
         let mut clone_sem_origem = self.clone();
         *clone_sem_origem.casa_mut(origem) = Casa::Vazia;
@@ -234,7 +234,7 @@ impl Partida {
             while atual.é_valida() && self.casa(atual).é_vazia() {
                 atual = atual + dir;
             }
-            if atual.é_valida() && !self.é_a_vez_de(self.peça(atual).unwrap()) {
+            if atual.é_valida() && !self.é_a_vez_de(self.pedra(atual).unwrap()) {
                 let mut pulo = (atual) + (origem.distancia(atual).normal());
                 if atual.é_valida() && pulo.é_valida() && self.casa(pulo).é_vazia() {
                     while pulo.é_valida() && self.casa(pulo).é_vazia() {
@@ -262,7 +262,7 @@ impl Partida {
     }
 
     fn calcular_movimentos(&self, origem: Coord) -> Vec<Jogada> {
-        match self.peça(origem).unwrap() {
+        match self.pedra(origem).unwrap() {
             Pedra::Branca | Pedra::Preta => self.movimentos_peão(origem),
             Pedra::DamaBranca | Pedra::DamaPreta => self.movimentos_dama(origem),
         }
@@ -281,7 +281,7 @@ impl Partida {
     }
 
     fn movimentos_peão(&self, origem: Coord) -> Vec<Jogada> {
-        let diagonais = match self.peça(origem).unwrap() {
+        let diagonais = match self.pedra(origem).unwrap() {
             Pedra::Branca => origem.diagonais_superiores(),
             Pedra::Preta => origem.diagonais_inferiores(),
             _ => panic!(),
@@ -293,11 +293,11 @@ impl Partida {
             .collect()
     }
 
-    fn peça(&self, coord: Coord) -> Option<Pedra> {
-        self.casa(coord).peça()
+    pub fn pedra(&self, coord: Coord) -> Option<Pedra> {
+        self.casa(coord).pedra()
     }
 
-    fn casa(&self, coord: Coord) -> Casa {
+    pub fn casa(&self, coord: Coord) -> Casa {
         self.tabuleiro[coord.y as usize][coord.x as usize]
     }
 
@@ -337,7 +337,7 @@ impl Partida {
         peças
     }
 
-    fn acabou(&self) -> bool {
+    pub fn acabou(&self) -> bool {
         for casa in self.tabuleiro.iter().flatten() {
             if let Casa::Ocupada(peça) = *casa {
                 if !self.é_a_vez_de(peça) {
@@ -370,6 +370,10 @@ impl Partida {
             }
         }
         movimentos.into_iter().filter(|x| !x.is_empty()).collect()
+    }
+
+    pub fn é_a_vez_do_branco(&self) -> bool {
+        self.vez == Jogador::Branco
     }
 }
 

@@ -9,7 +9,7 @@ pub enum Casa {
 }
 
 impl Casa {
-    pub fn peça(self) -> Option<Pedra> {
+    pub fn pedra(self) -> Option<Pedra> {
         match self {
             Casa::Ocupada(peça) => Some(peça),
             Casa::Vazia => None,
