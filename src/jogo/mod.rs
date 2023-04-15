@@ -31,6 +31,7 @@ pub struct Partida {
     tabuleiro: [[Casa; 8]; 8],
     vez: Jogador,
     jogadas: Vec<Vec<Jogada>>,
+    contador_empate: f32,
 }
 
 impl Default for Partida {
@@ -54,6 +55,7 @@ impl Default for Partida {
             tabuleiro,
             vez: Jogador::Branco,
             jogadas: vec![],
+            contador_empate: 0.0,
         };
         p.jogadas = p._todas_jogadas_possiveis();
         p
@@ -94,6 +96,7 @@ impl Partida {
 
         // Executar  a jogada
         let jogada = jogada.unwrap();
+        let pedra_usada = self.pedra(jogada[0].origem()).unwrap();
         for jogada in jogada {
             self.executar_jogada(*jogada);
         }
@@ -107,9 +110,19 @@ impl Partida {
             }
         }
 
+        // Atualizar contador de empate
+        if self.duas_damas() || pedra_usada.é_dama() {
+            self.contador_empate += 0.5;
+        } else {
+            self.contador_empate = 0.0;
+        }
+
         // Checar se acabou o jogo
-        if self.acabou() {
-            return Resultado::FimDoJogo(self.vez);
+        if self.ganhou() {
+            return Resultado::FimDoJogo(Some(self.vez));
+        }
+        if self.empatou() {
+            return Resultado::FimDoJogo(None);
         }
 
         self.passar_turno();
@@ -157,6 +170,7 @@ impl Partida {
             tabuleiro: tab,
             vez: Jogador::Branco,
             jogadas: vec![],
+            contador_empate: 0.0,
         };
         p.jogadas = p._todas_jogadas_possiveis();
         p
@@ -337,13 +351,39 @@ impl Partida {
         peças
     }
 
-    pub fn acabou(&self) -> bool {
+    pub fn ganhou(&self) -> bool {
         for casa in self.tabuleiro.iter().flatten() {
             if let Casa::Ocupada(peça) = *casa {
                 if !self.é_a_vez_de(peça) {
                     // encontrou uma peça do inimigo, logo, o jogo não acabou
                     return false;
                 }
+            } 
+        }
+        true
+    }
+
+    pub fn empatou(&self) -> bool {
+        if self.duas_damas() && self.contador_empate >= 5.0 {
+            return true;
+        }
+        if self.contador_empate >= 20.0 {
+            return true;
+        }
+        false
+    }
+
+    fn duas_damas(&self) -> bool {
+        let mut damas_branca = 0;
+        let mut damas_preta = 0;
+        for casa in self.tabuleiro.iter().flatten() {
+            if let Casa::Ocupada(peça) = *casa {
+                match peça {
+                    Pedra::DamaBranca => damas_branca += 1,
+                    Pedra::DamaPreta => damas_preta += 1,
+                    _ => return false,
+                }
+                if damas_branca > 1 || damas_preta > 1 { return false; }
             } 
         }
         true
@@ -374,6 +414,10 @@ impl Partida {
 
     pub fn é_a_vez_do_branco(&self) -> bool {
         self.vez == Jogador::Branco
+    }
+
+    pub fn get_contador_empate(&self) -> f32 {
+        self.contador_empate
     }
 }
 
